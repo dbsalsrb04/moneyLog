@@ -8,7 +8,7 @@ const backup={moneyTrackTable:[
 {id:6,part:'O',category:'식비',amount:1,tags:[],dateKey:'2026-08-01'}],categoryInfoTable:[{categoryName:'식비/외식'}],tagInfoTable:[{tagName:'여행'}]};
 async function upload(page:import('@playwright/test').Page,data:unknown=backup,name='backup.json'){await page.getByLabel('JSON 파일 선택',{exact:true}).setInputFiles({name,mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});}
 test('파일 업로드, 다중 필터, 기간 유지, 재업로드 및 오류 복구',async({page})=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await expect(page.getByText('소비를 이해하는 첫걸음')).toBeVisible();
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await expect(page.getByText('JSON 파일을 선택하면 분석 결과가 표시됩니다.')).toBeVisible();
  await upload(page);await expect(page.getByTestId('monthly-total')).toContainText('21,378원');await expect(page.getByTestId('daily-total')).toContainText('20,400원');
  const c=page.getByRole('region',{name:'카테고리 필터'}),t=page.getByRole('region',{name:'태그 필터'});
  await c.getByRole('button',{name:'식비',exact:true}).click();await expect(c.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','false');await expect(page.getByTestId('monthly-total')).toContainText('20,400원');
