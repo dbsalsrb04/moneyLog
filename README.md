@@ -28,6 +28,14 @@ npm run test:e2e
 
 기존 Chromium을 사용하려면 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`에 실행 파일 경로를 지정합니다. 이 클라우드 환경에서는 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium npm run test:e2e`로 실행할 수 있습니다.
 
+## GitHub Pages에서 사용
+
+저장소의 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 선택합니다. `main`에 푸시하면 `Deploy to GitHub Pages` 워크플로가 의존성 설치, 테스트, 빌드를 거쳐 `dist`만 게시합니다. Source를 변경한 뒤 자동 배포가 시작되지 않으면 **Actions → Deploy to GitHub Pages → Run workflow**를 실행합니다.
+
+배포가 성공하면 `https://dbsalsrb04.github.io/moneyLog/`로 접속합니다. 사이트에서 선택한 가계부 파일은 호스팅 서버로 전송되지 않고 브라우저에서 처리됩니다.
+
+원본 저장소를 `Deploy from a branch`로 직접 게시하면 `index.html`이 빌드 전 `/src/main.tsx`를 요청해 오류가 발생합니다. Vite의 빌드 결과를 게시해야 합니다. 빌드의 asset 경로는 상대 경로로 설정하여 `/moneyLog/` 아래에서도 읽을 수 있습니다.
+
 ## 구현 기능
 
 - JSON 파일 검증, 오류 안내, 파일 교체. 잘못된 새 파일은 기존 분석을 덮어쓰지 않습니다.
