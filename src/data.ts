@@ -1,5 +1,12 @@
-export type Transaction = { id: number | string; part: 'E' | 'R' | 'D' | 'O'; category: string; amount: number; memo: string; tags: string[]; dateKey: string; [key: string]: unknown };
-export type Backup = { raw: Record<string, unknown>; transactions: Transaction[]; categories: string[]; tags: string[]; latestMonth: string; firstMonth: string };
+export const TRANSACTION_PARTS = [
+  { value: 'R', label: '수입' },
+  { value: 'E', label: '지출' },
+  { value: 'D', label: '저축' },
+  { value: 'O', label: '기록' },
+] as const;
+export type TransactionPart = typeof TRANSACTION_PARTS[number]['value'];
+export type Transaction = { id: number | string; part: TransactionPart; category: string; amount: number; memo: string; tags: string[]; dateKey: string; [key: string]: unknown };
+export type Backup = { raw: Record<string, unknown>; transactions: Transaction[]; latestMonth: string; firstMonth: string };
 export type Point = { key: string; label: string; amount: number };
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 export function validDate(value: unknown): value is string {
@@ -11,17 +18,6 @@ export function daysInMonth(month: string): number {
   const [y,m] = month.split('-').map(Number);
   return [31,(y%4===0 && (y%100!==0 || y%400===0)) ? 29:28,31,30,31,30,31,31,30,31,30,31][m-1];
 }
-// Real backups use categoryName / tagName. Preserve labels verbatim, including ■.
-// Only semantic name fields are labels; IDs, ordering and timestamps are metadata.
-function metadataNames(table: unknown, kind: 'category' | 'tag'): string[] {
-  if (!Array.isArray(table)) return [];
-  return table.flatMap(item => {
-    if (typeof item === 'string') return [item];
-    if (!object(item)) return [];
-    const value = item[kind] ?? item[`${kind}Name`] ?? item.name;
-    return typeof value === 'string' && value.trim() ? [value] : [];
-  });
-}
 export function parseBackup(text: string): Backup {
   let raw: unknown;
   try { raw = JSON.parse(text.replace(/^\uFEFF/, '')); } catch { throw new Error('올바른 JSON 파일이 아닙니다. 백업 파일을 다시 확인해 주세요.'); }
@@ -32,17 +28,24 @@ export function parseBackup(text: string): Backup {
     }
     return { ...item, memo: typeof item.memo === 'string' ? item.memo : '' } as Transaction;
   });
+  const dates = transactions.map(t => t.dateKey).sort();
+  return { raw, transactions, latestMonth: dates.at(-1)!.slice(0,7), firstMonth: dates[0].slice(0,7) };
+}
+// Choices come from the complete history of the active type, independently of
+// the visible period and current selections. Unused metadata remains in raw.
+export function getFilterOptions(transactions: Transaction[], part: TransactionPart): { categories: string[]; tags: string[] } {
+  const matching = transactions.filter(t => t.part === part);
   const categories = new Set<string>();
-  [...transactions.map(t => t.category), ...metadataNames(raw.categoryInfoTable, 'category')].filter(Boolean).forEach(c => {
-    const parts = c.split('/');
+  matching.map(t => t.category).filter(Boolean).forEach(category => {
+    const parts = category.split('/');
     parts.forEach((_, i) => categories.add(parts.slice(0,i+1).join('/')));
   });
-  const tags = new Set([...transactions.flatMap(t => t.tags), ...metadataNames(raw.tagInfoTable, 'tag')].filter(Boolean));
-  const dates = transactions.map(t => t.dateKey).sort();
-  return { raw, transactions, categories: [...categories].sort((a,b)=>a.localeCompare(b,'ko')), tags: [...tags].sort((a,b)=>a.localeCompare(b,'ko')), latestMonth: dates.at(-1)!.slice(0,7), firstMonth: dates[0].slice(0,7) };
+  const tags = new Set(matching.flatMap(t => t.tags).filter(Boolean));
+  const sort = (values: Set<string>) => [...values].sort((a,b) => a.localeCompare(b,'ko'));
+  return { categories: sort(categories), tags: sort(tags) };
 }
-export function filterExpenses(transactions: Transaction[], categories: string[], tags: string[]): Transaction[] {
-  return transactions.filter(t => t.part === 'E' && (!categories.length || categories.some(c => t.category === c || t.category.startsWith(`${c}/`))) && (!tags.length || tags.some(tag => t.tags.includes(tag))));
+export function filterTransactions(transactions: Transaction[], part: TransactionPart, categories: string[] = [], tags: string[] = []): Transaction[] {
+  return transactions.filter(t => t.part === part && (!categories.length || categories.some(c => t.category === c || t.category.startsWith(`${c}/`))) && (!tags.length || tags.some(tag => t.tags.includes(tag))));
 }
 export function shiftMonth(month: string, delta: number): string {
   const [year,m] = month.split('-').map(Number);

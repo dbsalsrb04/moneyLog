@@ -15,12 +15,93 @@ test('파일 업로드, 다중 필터, 기간 유지, 재업로드 및 오류 �
  await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('7,200원');await expect(page.getByTestId('daily-total')).toContainText('7,200원');
  await t.getByRole('button',{name:'식비',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('20,400원');
  await page.getByRole('button',{name:'3개월',exact:true}).click();await page.getByLabel('일별 조회 월').selectOption('2026-07');
- await t.getByRole('button',{name:'여행',exact:true}).click();await t.getByRole('button',{name:'식비',exact:true}).click();await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('0원');await expect(page.getByTestId('daily-total')).toContainText('0원');await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
- await t.getByRole('button',{name:'여행',exact:true}).click();await expect(t.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
+ await t.getByRole('button',{name:'교통비',exact:true}).click();await t.getByRole('button',{name:'식비',exact:true}).click();await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('0원');await expect(page.getByTestId('daily-total')).toContainText('0원');await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
+ await t.getByRole('button',{name:'교통비',exact:true}).click();await expect(t.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
  await c.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('21,378원');
- await page.getByRole('region',{name:'월별 소비량',exact:true}).locator('.recharts-bar-rectangle').first().click();await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
- await page.getByRole('region',{name:'월별 소비량',exact:true}).locator('summary').click();await page.getByRole('button',{name:'2026-08',exact:true}).click();await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-08');
+ await page.getByRole('region',{name:'월별 지출',exact:true}).locator('.recharts-bar-rectangle').first().click();await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
+ await page.getByRole('region',{name:'월별 지출',exact:true}).locator('summary').click();await page.getByRole('button',{name:'2026-08',exact:true}).click();await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-08');
  await upload(page,{moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]},'next.json');await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2024-02');await expect(page.getByRole('button',{name:'12개월',exact:true})).toHaveAttribute('aria-pressed','true');await expect(c.getByRole('button',{name:'식비',exact:true})).toHaveCount(0);
  await upload(page,{});await expect(page.getByRole('alert')).toBeVisible();await expect(page.getByTestId('daily-total')).toContainText('900원');expect(errors).toEqual([]);
 });
 test('모바일에서 가로 넘침 없이 표시한다',async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await upload(page);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await expect(page.getByRole('region',{name:'태그 필터'})).toBeVisible();});
+
+test('미사용 항목 숨김, 다단계 접기·펼치기와 선택 유지',async({page})=>{
+ await page.goto('/');
+ const data={moneyTrackTable:[
+  {id:1,part:'E',category:'식비/편의점/간편식',amount:7200,tags:['간식'],dateKey:'2026-08-01'},
+  {id:2,part:'E',category:'식비/카페',amount:5000,tags:['음료'],dateKey:'2026-08-02'},
+  {id:3,part:'E',category:'교통비',amount:1000,tags:['이동'],dateKey:'2026-08-03'},
+  {id:4,part:'R',category:'수입/월급',amount:100000,tags:['수입전용'],dateKey:'2026-08-01'},
+  {id:5,part:'O',category:'기록전용',amount:1,tags:['기록전용'],dateKey:'2026-08-01'}
+ ],categoryInfoTable:[{categoryName:'미사용/분류'}],tagInfoTable:[{tagName:'미사용태그'}]};
+ await upload(page,data);
+ const c=page.getByRole('region',{name:'카테고리 필터'}),tags=page.getByRole('region',{name:'태그 필터'});
+ await expect(c.getByRole('button',{name:'식비/편의점',exact:true})).toBeHidden();
+ await expect(c.getByRole('button',{name:'수입',exact:true})).toHaveCount(0);
+ await expect(c.getByRole('button',{name:'미사용',exact:true})).toHaveCount(0);
+ await expect(c.getByRole('button',{name:'기록전용',exact:true})).toHaveCount(0);
+ await expect(tags.getByRole('button',{name:'미사용태그',exact:true})).toHaveCount(0);
+ await expect(tags.getByRole('button',{name:'수입전용',exact:true})).toHaveCount(0);
+ await c.getByRole('button',{name:'식비 펼치기',exact:true}).click();
+ await expect(page.getByTestId('monthly-total')).toContainText('13,200원');
+ await expect(c.getByRole('button',{name:'식비/편의점',exact:true})).toBeVisible();
+ await expect(c.getByRole('button',{name:'식비/편의점/간편식',exact:true})).toBeHidden();
+ await c.getByRole('button',{name:'식비/편의점 펼치기',exact:true}).focus();await page.keyboard.press('Enter');
+ await c.getByRole('button',{name:'식비/편의점/간편식',exact:true}).click();
+ await expect(page.getByTestId('monthly-total')).toContainText('7,200원');
+ await c.getByRole('button',{name:'식비 접기',exact:true}).click();
+ await expect(page.getByTestId('monthly-total')).toContainText('7,200원');
+ await expect(page.getByTestId('daily-total')).toContainText('7,200원');
+ await c.getByRole('button',{name:'식비 펼치기',exact:true}).click();
+ await expect(c.getByRole('button',{name:'식비/편의점/간편식',exact:true})).toHaveAttribute('aria-pressed','true');
+ await c.getByRole('button',{name:'전체',exact:true}).click();
+ await c.getByRole('button',{name:'식비',exact:true}).click();
+ await expect(page.getByTestId('monthly-total')).toContainText('12,200원');
+ await expect(tags.getByRole('button',{name:'이동',exact:true})).toBeVisible();
+});
+
+test('수입·지출·저축·기록 전환 시 두 차트와 필터가 함께 변경된다',async({page})=>{
+ await page.goto('/');await upload(page);
+ const parts=page.getByRole('group',{name:'거래 유형'});
+ const c=page.getByRole('region',{name:'카테고리 필터'}),tags=page.getByRole('region',{name:'태그 필터'});
+ await c.getByRole('button',{name:'식비',exact:true}).click();await tags.getByRole('button',{name:'간식',exact:true}).click();
+ await page.getByRole('button',{name:'3개월',exact:true}).click();await page.getByLabel('일별 조회 월').selectOption('2026-07');
+ await parts.getByRole('button',{name:'수입',exact:true}).click();
+ await expect(parts.getByRole('button',{name:'수입',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByTestId('monthly-total')).toContainText('100,000원');await expect(page.getByTestId('daily-total')).toContainText('0원');
+ await expect(page.getByRole('region',{name:'월별 수입',exact:true})).toBeVisible();
+ await expect(c.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(tags.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(c.getByRole('button',{name:'식비',exact:true})).toHaveCount(0);
+ await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
+ await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+ await page.getByLabel('일별 조회 월').selectOption('2026-08');
+ for(const [name,total] of [['수입','100,000원'],['저축','50,000원'],['기록','1원'],['지출','20,400원']]){
+  await parts.getByRole('button',{name,exact:true}).click();await expect(page.getByTestId('daily-total')).toContainText(total);
+  await expect(page.getByRole('region',{name:`일별 ${name}`,exact:true})).toBeVisible();
+ }
+ await upload(page,{moneyTrackTable:[{id:99,part:'R',category:'수입/이자',amount:300,tags:['이자'],dateKey:'2026-09-01'}]});
+ await expect(page.getByTestId('monthly-total')).toContainText('0원');await expect(c.getByRole('button',{name:'수입',exact:true})).toHaveCount(0);
+ await parts.getByRole('button',{name:'수입',exact:true}).click();await expect(page.getByTestId('daily-total')).toContainText('300원');
+ await expect(tags.getByRole('button',{name:'이자',exact:true})).toBeVisible();
+});
+
+test('드래그 앤 드롭 업로드·교체·잘못된 파일 및 다중 파일 복구',async({page})=>{
+ await page.goto('/');
+ const area=page.getByRole('region',{name:'JSON 파일 업로드'});
+ async function drop(files:{name:string;content:string}[]){
+  const dataTransfer=await page.evaluateHandle(items=>{
+   const transfer=new DataTransfer();items.forEach(item=>transfer.items.add(new File([item.content],item.name,{type:'application/json'})));return transfer;
+  },files);
+  await area.dispatchEvent('dragenter',{dataTransfer});await expect(area).toHaveClass(/dragging/);
+  await area.dispatchEvent('dragover',{dataTransfer});await area.dispatchEvent('drop',{dataTransfer});
+  await expect(area).not.toHaveClass(/dragging/);await dataTransfer.dispose();
+ }
+ await drop([{name:'dropped.json',content:JSON.stringify(backup)}]);
+ await expect(page.getByTestId('monthly-total')).toContainText('21,378원');await expect(area.getByText('dropped.json')).toBeVisible();
+ await drop([{name:'bad.json',content:'{'}]);await expect(page.getByRole('alert')).toContainText('올바른 JSON');await expect(page.getByTestId('monthly-total')).toContainText('21,378원');
+ await drop([{name:'notes.txt',content:'text'}]);await expect(page.getByRole('alert')).toContainText('.json');
+ await drop([{name:'one.json',content:'{}'},{name:'two.json',content:'{}'}]);await expect(page.getByRole('alert')).toContainText('하나만');await expect(page.getByTestId('monthly-total')).toContainText('21,378원');
+ await drop([{name:'replacement.JSON',content:JSON.stringify({moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]})}]);
+ await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2024-02');
+});
