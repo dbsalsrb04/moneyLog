@@ -34,6 +34,8 @@ npm run test:e2e
 
 저장소의 **Settings → Pages → Build and deployment → Source**를 **GitHub Actions**로 선택합니다. `main`에 푸시하면 `Deploy to GitHub Pages` 워크플로가 의존성 설치, 테스트, 빌드를 거쳐 `dist`만 게시합니다. Source를 변경한 뒤 자동 배포가 시작되지 않으면 **Actions → Deploy to GitHub Pages → Run workflow**를 실행합니다.
 
+워크플로는 게시 방식이 GitHub Actions인지 먼저 확인하고, 기존 Pages 설정의 자동 전환을 시도합니다. 저장소 권한 때문에 전환이 거부되면 위 Source 설정을 직접 바꾼 뒤 실패한 워크플로를 다시 실행해야 합니다. 브랜치 게시와 빌드 결과 게시를 동시에 유지하지 않습니다.
+
 배포가 성공하면 `https://dbsalsrb04.github.io/moneyLog/`로 접속합니다. 사이트에서 선택한 가계부 파일은 호스팅 서버로 전송되지 않고 브라우저에서 처리됩니다.
 
 원본 저장소를 `Deploy from a branch`로 직접 게시하면 `index.html`이 빌드 전 `/src/main.tsx`를 요청해 오류가 발생합니다. Vite의 빌드 결과를 게시해야 합니다. 빌드의 asset 경로는 상대 경로로 설정하여 `/moneyLog/` 아래에서도 읽을 수 있습니다.
