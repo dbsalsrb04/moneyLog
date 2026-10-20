@@ -41,7 +41,7 @@
 .calendar-day[aria-pressed=true]{background:#eef3ff;border-color:#6685ed;box-shadow:inset 0 0 0 1px #6685ed}
 .calendar-day-number{font-size:12px;line-height:17px;font-weight:600}
 .calendar-day-amounts{display:flex;flex-direction:column;width:100%;min-width:0}
-.calendar-amount{display:block;min-width:0;max-width:100%;height:14px;line-height:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.calendar-amount{text-align:right;display:block;min-width:0;max-width:100%;height:14px;line-height:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .calendar-part-R{color:#2563ce}
 .calendar-part-E{color:#c83f48}
 .calendar-part-D{color:#23864a}

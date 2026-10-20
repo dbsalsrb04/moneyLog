@@ -1,4 +1,4 @@
-import { getMonthStartWeekday, TRANSACTION_PARTS, won, type CalendarDay, type TransactionPart } from '../data';
+import { getMonthStartWeekday, TRANSACTION_PARTS, type CalendarDay, type TransactionPart } from '../data';
 
 type Props = {
   days: CalendarDay[];
@@ -8,9 +8,9 @@ type Props = {
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const formatAmount = (part: TransactionPart, amount: number) => {
-  if (part === 'R') return `${amount < 0 ? '' : '+'}${won(amount)}`;
-  if (part === 'E') return `${amount < 0 ? '+' : '-'}${won(Math.abs(amount))}`;
-  return won(amount);
+  if (part === 'R') return `${amount < 0 ? '' : '+'}${amount.toLocaleString('ko-KR')}`;
+  if (part === 'E') return `${amount < 0 ? '+' : '-'}${Math.abs(amount).toLocaleString('ko-KR')}`;
+  return amount.toLocaleString('ko-KR');
 };
 
 export default function MonthCalendar({ days, selectedDate, onSelect }: Props) {

@@ -188,11 +188,14 @@ test('캘린더에서 월말로 바로 이동하고 네 유형의 합계·필터
  const calendar=page.getByRole('group',{name:'월간 거래 캘린더'});
  const first=calendar.getByRole('button',{name:'2026-08-01 선택',exact:true});
  await expect(first).toHaveAttribute('aria-pressed','true');
- for(const [part,text,color] of [['R','+100,000원','rgb(37, 99, 206)'],['E','-10,000원','rgb(200, 63, 72)'],['D','50,000원','rgb(35, 134, 74)'],['O','1원','rgb(126, 132, 144)']]){
+ await expect(first.locator('.calendar-day-number')).toHaveText('1');
+ await expect(first.locator('.calendar-day-number')).toHaveCSS('text-align','left');
+ for(const [part,text,color] of [['R','+100,000','rgb(37, 99, 206)'],['E','-10,000','rgb(200, 63, 72)'],['D','50,000','rgb(35, 134, 74)'],['O','1','rgb(126, 132, 144)']]){
   await expect(first.locator(`.calendar-part-${part}`)).toHaveText(text);
   await expect(first.locator(`.calendar-part-${part}`)).toHaveCSS('color',color);
+  await expect(first.locator(`.calendar-part-${part}`)).toHaveCSS('text-align','right');
  }
- await expect(calendar.getByRole('button',{name:'2026-08-15 선택',exact:true}).locator('.calendar-part-E')).toHaveText('-0원');
+ await expect(calendar.getByRole('button',{name:'2026-08-15 선택',exact:true}).locator('.calendar-part-E')).toHaveText('-0');
  await expect(calendar.locator('.calendar-grid>div,.calendar-grid>button')).toHaveCount(42);
  expect(await calendar.locator('.calendar-day').first().evaluate(element=>[...element.parentElement!.children].indexOf(element))).toBe(6);
  await calendar.getByRole('button',{name:'2026-08-31 선택',exact:true}).click();
@@ -203,14 +206,14 @@ test('캘린더에서 월말로 바로 이동하고 네 유형의 합계·필터
  await detail.getByRole('button',{name:'이전 날짜',exact:true}).click();
  await expect(calendar.getByRole('button',{name:'2026-08-30 선택',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'간식',exact:true}).click();
- await expect(first.locator('.calendar-part-E')).toHaveText('-10,000원');
- await expect(first.locator('.calendar-part-R')).toHaveText('+0원');
- await expect(first.locator('.calendar-part-D')).toHaveText('0원');
- await expect(first.locator('.calendar-part-O')).toHaveText('0원');
+ await expect(first.locator('.calendar-part-E')).toHaveText('-10,000');
+ await expect(first.locator('.calendar-part-R')).toHaveText('+0');
+ await expect(first.locator('.calendar-part-D')).toHaveText('0');
+ await expect(first.locator('.calendar-part-O')).toHaveText('0');
  await expect(calendar.getByRole('button',{name:'2026-08-30 선택',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.getByRole('group',{name:'거래 유형'}).getByRole('button',{name:'수입',exact:true}).click();
- await expect(first.locator('.calendar-part-R')).toHaveText('+100,000원');
- await expect(first.locator('.calendar-part-E')).toHaveText('-10,000원');
+ await expect(first.locator('.calendar-part-R')).toHaveText('+100,000');
+ await expect(first.locator('.calendar-part-E')).toHaveText('-10,000');
  await first.click();
  await expect(page.getByRole('region',{name:'세부 수입',exact:true}).locator('.detail-entry')).toContainText('100,000원');
 });
@@ -226,7 +229,7 @@ test('모바일 캘린더는 큰 금액도 한 줄로 맞추고 윤년 날짜를
  const last=calendar.getByRole('button',{name:'2024-02-29 선택',exact:true});
  await last.click();
  await expect(page.getByRole('region',{name:'세부 지출',exact:true}).locator('time')).toHaveText('2024-02-29');
- await expect(last.locator('.calendar-part-R')).toHaveText('+1,234,567,890원');
+ await expect(last.locator('.calendar-part-R')).toHaveText('+1,234,567,890');
  expect(await last.locator('.calendar-amount').evaluateAll(elements=>elements.every(element=>element.scrollWidth<=element.clientWidth+1))).toBe(true);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.getByLabel('세부 내역 조회 월').selectOption('2024-01');
