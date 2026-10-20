@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { parseBackup,filterTransactions,getFilterOptions,aggregateMonthly,aggregateDaily,getDailyDetails,getMonthlyCalendar,getMonthStartWeekday,toggleSelection,validDate, type Transaction } from './data';
+import { parseBackup,filterTransactions,getFilterOptions,aggregateMonthly,aggregateMonthlyByPart,aggregateDaily,getDailyDetails,getMonthlyCalendar,getMonthStartWeekday,toggleSelection,validDate, type Transaction } from './data';
 const t=(id:number,part:Transaction['part'],category:string,tags:string[],amount:number,dateKey='2026-08-01')=>({id,part,category,tags,amount,dateKey,memo:'',dateAt:0});
 const rows=[t(1,'E','식비/편의점',['간식','식비'],7200),t(2,'E','식비',['PC방에서','식비'],13200),t(3,'E','교통비/지쿠',['교통비'],978),t(4,'R','수입/월급',[],100000,'2026-10-20'),t(5,'D','저축',[],50000),t(6,'O','식비/배달',['식비'],1)];
 const parse=(moneyTrackTable:unknown=rows)=>parseBackup(JSON.stringify({moneyTrackTable,categoryInfoTable:[{categoryName:'식비/외식',id:8,order:65},{categoryName:'■식비'}],tagInfoTable:[{tagName:'여행',id:24,order:13}]}));
@@ -84,5 +84,29 @@ describe('유형별 일별 캘린더 집계',()=>{
   expect(getMonthStartWeekday('2024-02')).toBe(4);
   expect(getMonthStartWeekday('2026-02')).toBe(0);
   expect(getMonthStartWeekday('0001-01')).toBe(1);
+ });
+});
+
+describe('월별 거래 유형 비교',()=>{
+ it('같은 월의 네 유형을 합치지 않고 따로 집계하며 빈 월을 채운다',()=>{
+  const before=JSON.stringify(rows),points=aggregateMonthlyByPart(rows,'2026-10',3);
+  expect(points).toEqual([
+   {key:'2026-08',label:'2026.08',R:0,E:21378,D:50000,O:1},
+   {key:'2026-09',label:'2026.09',R:0,E:0,D:0,O:0},
+   {key:'2026-10',label:'2026.10',R:100000,E:0,D:0,O:0},
+  ]);
+  expect(JSON.stringify(rows)).toBe(before);
+ });
+ it.each([12,6,3])('%i개월의 비교 집계는 유형별 단일 집계와 일치한다',count=>{
+  const points=aggregateMonthlyByPart(rows,'2026-10',count);
+  expect(points).toHaveLength(count);
+  for(const part of ['R','E','D','O'] as const){
+   expect(points.map(point=>point[part])).toEqual(aggregateMonthly(filterTransactions(rows,part),'2026-10',count).map(point=>point.amount));
+  }
+ });
+ it('공유 OR/AND 필터를 적용해 중복 없이 비교하고 연도를 넘는 빈 월도 유지한다',()=>{
+  const matching=filterTransactions(rows,null,['식비'],['간식','식비']);
+  expect(aggregateMonthlyByPart(matching,'2026-08',3).at(-1)).toEqual({key:'2026-08',label:'2026.08',E:20400,R:0,D:0,O:1});
+  expect(aggregateMonthlyByPart([],'2026-01',3).map(point=>point.key)).toEqual(['2025-11','2025-12','2026-01']);
  });
 });

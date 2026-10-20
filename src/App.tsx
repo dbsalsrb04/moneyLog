@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { BarChart3, CalendarDays, RotateCcw } from 'lucide-react';
 import {
-  aggregateDaily, aggregateMonthly, filterTransactions, getFilterOptions,
-  monthRange, parseBackup, TRANSACTION_PARTS, won, type Backup, type TransactionPart,
+  aggregateDaily, aggregateMonthly, aggregateMonthlyByPart, filterTransactions, getFilterOptions,
+  monthRange, parseBackup, TRANSACTION_COLORS, TRANSACTION_PARTS, won, type Backup, type TransactionPart,
 } from './data';
 import FileUpload from './components/FileUpload';
 import FilterPanel from './components/FilterPanel';
@@ -15,6 +15,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [part, setPart] = useState<TransactionPart>('E');
+  const [comparisonParts, setComparisonParts] = useState<TransactionPart[] | null>(null);
   const [period, setPeriod] = useState(12);
   const [month, setMonth] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
@@ -27,6 +28,10 @@ export default function App() {
   const matching = useMemo(() => filterTransactions(backup?.transactions ?? [], null, categories, tags), [backup, categories, tags]);
   const filtered = useMemo(() => matching.filter(transaction => transaction.part === part), [matching, part]);
   const monthly = useMemo(() => backup ? aggregateMonthly(filtered, backup.latestMonth, period) : [], [backup, filtered, period]);
+  const comparison = useMemo(() => backup && comparisonParts ? {
+    points: aggregateMonthlyByPart(matching, backup.latestMonth, period),
+    parts: comparisonParts,
+  } : undefined, [backup, matching, period, comparisonParts]);
   const daily = useMemo(() => month ? aggregateDaily(filtered, month) : [], [filtered, month]);
   const months = useMemo(() => backup ? monthRange(backup.firstMonth < monthly[0].key ? backup.firstMonth : monthly[0].key, backup.latestMonth).reverse() : [], [backup, monthly]);
   const total = (points: typeof daily) => points.reduce((sum, point) => sum + point.amount, 0);
@@ -39,7 +44,16 @@ export default function App() {
   function selectPart(next: TransactionPart) {
     if (next === part) return;
     setPart(next);
+    setComparisonParts(null);
     resetFilters();
+  }
+
+  function toggleComparisonPart(value: TransactionPart) {
+    setComparisonParts(previous => {
+      if (!previous) return previous;
+      if (previous.includes(value)) return previous.length > 1 ? previous.filter(item => item !== value) : previous;
+      return previous.length < 2 ? [...previous, value] : previous;
+    });
   }
 
   async function upload(files: File[]) {
@@ -57,6 +71,7 @@ export default function App() {
       setFileName(file.name);
       setDatasetVersion(version);
       setPart('E');
+      setComparisonParts(null);
       resetFilters();
       setPeriod(12);
       setMonth(data.latestMonth);
@@ -92,16 +107,34 @@ export default function App() {
       </div>
       <div className="dashboard">
         <div className="charts-column">{backup ? <>
-          <section className="card chart-card" aria-label={`월별 ${partLabel}`}>
+          <section className="card chart-card monthly-card" aria-label={comparison ? '월별 유형 비교' : `월별 ${partLabel}`}>
             <div className="chart-header">
               <div>
-                <div className="chart-title"><span className="icon-box"><BarChart3 size={18} /></span><h2>월별 {partLabel}</h2></div>
+                <div className="chart-title"><span className="icon-box"><BarChart3 size={18} /></span><h2>{comparison ? '월별 유형 비교' : `월별 ${partLabel}`}</h2></div>
                 <p className="chart-description">{monthly[0].label} – {monthly.at(-1)?.label} · 최근 {period}개월</p>
               </div>
-              <div className="segmented" aria-label="월별 표시 기간">{[12, 6, 3].map(n => <button key={n} aria-pressed={period === n} className={period === n ? 'active' : ''} onClick={() => setPeriod(n)}>{n}개월</button>)}</div>
+              <div className="monthly-controls">
+                <button className={`comparison-toggle ${comparison ? 'active' : ''}`} aria-expanded={Boolean(comparison)} aria-controls="monthly-comparison-options" onClick={() => setComparisonParts(previous => previous ? null : [part])}>{comparison ? '비교 종료' : '다른 유형과 비교하기'}</button>
+                <div className="segmented" aria-label="월별 표시 기간">{[12, 6, 3].map(n => <button key={n} aria-pressed={period === n} className={period === n ? 'active' : ''} onClick={() => setPeriod(n)}>{n}개월</button>)}</div>
+              </div>
             </div>
-            <div className="chart-total" data-testid="monthly-total">{won(total(monthly))}<span>선택 기간 {partLabel}</span></div>
-            <SpendingChart points={monthly} partLabel={partLabel} selectedMonth={month} onSelect={setMonth} />
+            <div id="monthly-comparison-options" hidden={!comparisonParts}>
+              {comparisonParts && <div className="comparison-options" role="group" aria-label="월별 비교 유형">
+                {TRANSACTION_PARTS.map(item => <button
+                  key={item.value}
+                  className={`chip ${comparisonParts.includes(item.value) ? 'selected' : ''}`}
+                  aria-pressed={comparisonParts.includes(item.value)}
+                  disabled={comparisonParts.includes(item.value) ? comparisonParts.length === 1 : comparisonParts.length === 2}
+                  onClick={() => toggleComparisonPart(item.value)}
+                >{item.label}</button>)}
+                <span className="comparison-count">{comparisonParts.length} / 2</span>
+              </div>}
+            </div>
+            {comparison ? <div className="comparison-totals">{comparison.parts.map(value => <div key={value} data-testid={`comparison-total-${value}`}>
+              <span className="comparison-series-label"><i style={{ background: TRANSACTION_COLORS[value] }} />{TRANSACTION_PARTS.find(item => item.value === value)!.label}</span>
+              <strong>{won(comparison.points.reduce((sum, point) => sum + point[value], 0))}</strong>
+            </div>)}</div> : <div className="chart-total" data-testid="monthly-total">{won(total(monthly))}<span>선택 기간 {partLabel}</span></div>}
+            <SpendingChart points={monthly} partLabel={partLabel} selectedMonth={month} onSelect={setMonth} comparison={comparison} />
           </section>
           <section className="card chart-card" aria-label={`일별 ${partLabel}`}>
             <div className="chart-header">

@@ -8,6 +8,9 @@ export type TransactionPart = typeof TRANSACTION_PARTS[number]['value'];
 export type Transaction = { id: number | string; part: TransactionPart; category: string; amount: number; memo: string; tags: string[]; dateKey: string; [key: string]: unknown };
 export type Backup = { raw: Record<string, unknown>; transactions: Transaction[]; latestMonth: string; firstMonth: string };
 export type Point = { key: string; label: string; amount: number };
+export type ComparisonPoint = Pick<Point, 'key' | 'label'> & Record<TransactionPart, number>;
+export type MonthlyComparison = { points: ComparisonPoint[]; parts: TransactionPart[] };
+export const TRANSACTION_COLORS: Record<TransactionPart, string> = { R: '#2563ce', E: '#c83f48', D: '#23864a', O: '#7e8490' };
 export type DayDetails = { dateKey: string; transactions: Transaction[] };
 export type CalendarDay = { dateKey: string; totals: Record<TransactionPart, number> };
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -63,6 +66,15 @@ export function aggregateMonthly(transactions: Transaction[], latest: string, co
   const totals = new Map<string,number>();
   transactions.forEach(t => { const m=t.dateKey.slice(0,7); totals.set(m,(totals.get(m)??0)+t.amount); });
   return Array.from({length:count},(_,i)=> { const key=shiftMonth(latest,i-count+1); return { key, label:key.replace('-', '.'), amount:totals.get(key)??0 }; });
+}
+export function aggregateMonthlyByPart(transactions: Transaction[], latest: string, count: number): ComparisonPoint[] {
+  const points = aggregateMonthly([], latest, count).map(({ key, label }) => ({ key, label, R: 0, E: 0, D: 0, O: 0 }));
+  const months = new Map(points.map(point => [point.key, point]));
+  transactions.forEach(transaction => {
+    const point = months.get(transaction.dateKey.slice(0, 7));
+    if (point) point[transaction.part] += transaction.amount;
+  });
+  return points;
 }
 export function aggregateDaily(transactions: Transaction[], month: string): Point[] {
   const totals = new Map<string,number>();

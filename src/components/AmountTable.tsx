@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { won, type Point } from '../data';
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { TRANSACTION_PARTS, won, type MonthlyComparison, type Point } from '../data';
 
 type Props = {
   points: Point[];
@@ -7,34 +7,43 @@ type Props = {
   daily?: boolean;
   selectedMonth?: string;
   onSelect?: (month: string) => void;
+  comparison?: MonthlyComparison;
 };
 
-export default function AmountTable({ points, partLabel, daily, selectedMonth, onSelect }: Props) {
-  const measureRef = useRef<HTMLSpanElement>(null);
-  const [amountWidth, setAmountWidth] = useState(100);
+export default function AmountTable({ points, partLabel, daily, selectedMonth, onSelect, comparison }: Props) {
+  const measureRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [amountWidths, setAmountWidths] = useState<number[]>([]);
+  const columns = useMemo(() => comparison ? comparison.parts.map(value => ({
+    key: value,
+    label: TRANSACTION_PARTS.find(item => item.value === value)!.label,
+    amounts: comparison.points.map(point => point[value]),
+  })) : [{ key: 'amount', label: partLabel, amounts: points.map(point => point.amount) }], [comparison, points, partLabel]);
+  const rows = comparison?.points ?? points;
+  const widths = columns.map((_, index) => amountWidths[index] ?? 100);
 
   useLayoutEffect(() => {
-    const element = measureRef.current;
-    if (!element) return;
+    const elements = columns.map((_, index) => measureRefs.current[index]);
     const measure = () => {
-      const width = element.getBoundingClientRect().width;
-      if (width > 0) setAmountWidth(Math.ceil(width * 1.3));
+      const next = elements.map(element => Math.ceil((element?.getBoundingClientRect().width ?? 0) * 1.3));
+      if (next.every(width => width > 0)) {
+        setAmountWidths(previous => previous.length === next.length && previous.every((width, index) => width === next[index]) ? previous : next);
+      }
     };
     measure();
-    // Recalculate when a closed amount table opens, or its font changes.
+    // Recalculate when a closed table opens, or its font changes.
     const observer = new ResizeObserver(measure);
-    observer.observe(element);
+    elements.forEach(element => { if (element) observer.observe(element); });
     return () => observer.disconnect();
-  }, [points]);
+  }, [columns]);
 
-  return <div className="table-scroll amount-table-container" style={{ '--amount-column-width': `${amountWidth}px` } as CSSProperties}>
-    <span ref={measureRef} className="amount-measure" aria-hidden="true">{points.map(point => won(point.amount)).join('\n')}</span>
+  return <div className="table-scroll amount-table-container" style={{ '--amount-columns-width': `${widths.reduce((sum, width) => sum + width, 0)}px` } as CSSProperties}>
+    {columns.map((column, index) => <span key={column.key} ref={element => { measureRefs.current[index] = element; }} className="amount-measure" aria-hidden="true">{column.amounts.map(won).join('\n')}</span>)}
     <table className="amount-table">
-      <colgroup><col className="date-column" /><col className="amount-column" /></colgroup>
-      <thead><tr><th scope="col">{daily ? '날짜' : '연월'}</th><th scope="col" className="amount-cell">{partLabel} 금액</th></tr></thead>
-      <tbody>{points.map(point => <tr key={point.key}>
+      <colgroup><col className="date-column" />{columns.map((column, index) => <col key={column.key} className="amount-column" style={{ width: `${widths[index]}px` }} />)}</colgroup>
+      <thead><tr><th scope="col">{daily ? '날짜' : '연월'}</th>{columns.map(column => <th scope="col" className="amount-cell" key={column.key}>{column.label} 금액</th>)}</tr></thead>
+      <tbody>{rows.map((point, index) => <tr key={point.key}>
         <th scope="row">{onSelect ? <button onClick={() => onSelect(point.key)} aria-pressed={point.key === selectedMonth}>{point.key}</button> : point.key}</th>
-        <td className="amount-cell"><span className="amount-text">{won(point.amount)}</span></td>
+        {columns.map(column => <td className="amount-cell" key={column.key}><span className="amount-text">{won(column.amounts[index])}</span></td>)}
       </tr>)}</tbody>
     </table>
   </div>;

@@ -194,6 +194,7 @@ test('캘린더에서 월말로 바로 이동하고 네 유형의 합계·필터
   await expect(first.locator(`.calendar-part-${part}`)).toHaveText(text);
   await expect(first.locator(`.calendar-part-${part}`)).toHaveCSS('color',color);
   await expect(first.locator(`.calendar-part-${part}`)).toHaveCSS('text-align','right');
+  await expect(first.locator(`.calendar-part-${part}`)).toHaveCSS('font-weight','700');
  }
  await expect(calendar.getByRole('button',{name:'2026-08-15 선택',exact:true}).locator('.calendar-part-E')).toHaveText('-0');
  await expect(calendar.locator('.calendar-grid>div,.calendar-grid>button')).toHaveCount(42);
@@ -235,4 +236,70 @@ test('모바일 캘린더는 큰 금액도 한 줄로 맞추고 윤년 날짜를
  await page.getByLabel('세부 내역 조회 월').selectOption('2024-01');
  await expect(calendar.locator('.calendar-day')).toHaveCount(31);
  await expect(calendar.getByRole('button',{name:'2024-01-01 선택',exact:true})).toHaveAttribute('aria-pressed','true');
+});
+
+
+test('월별 비교는 두 유형까지만 선택하고 같은 월의 막대를 절반씩 나란히 표시한다',async({page})=>{
+ await page.goto('/');await upload(page);
+ await page.getByRole('button',{name:'3개월',exact:true}).click();
+ const monthly=page.locator('.monthly-card');
+ await monthly.getByRole('button',{name:'다른 유형과 비교하기',exact:true}).click();
+ const types=monthly.getByRole('group',{name:'월별 비교 유형'});
+ await expect(types.getByRole('button',{name:'지출',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(types.getByRole('button',{name:'지출',exact:true})).toBeDisabled();
+ await types.getByRole('button',{name:'수입',exact:true}).click();
+ await expect(types.getByRole('button',{name:'저축',exact:true})).toBeDisabled();
+ await expect(types.getByRole('button',{name:'기록',exact:true})).toBeDisabled();
+ await expect(page.getByTestId('comparison-total-E')).toContainText('21,378원');
+ await expect(page.getByTestId('comparison-total-R')).toContainText('100,000원');
+ await expect(page.getByTestId('daily-total')).toContainText('20,400원');
+ const series=monthly.locator('.recharts-bar-rectangles');
+ await expect(series).toHaveCount(2);
+ await expect.poll(async()=>{
+  const expense=await series.nth(0).locator('.recharts-bar-rectangle').last().boundingBox();
+  const income=await series.nth(1).locator('.recharts-bar-rectangle').last().boundingBox();
+  return Boolean(expense&&income&&Math.abs(expense.width-income.width)<1&&Math.abs(expense.x+expense.width-income.x)<1&&expense.width+income.width<=42.1&&Math.abs(expense.y+expense.height-income.y-income.height)<1);
+ }).toBe(true);
+ await series.nth(1).locator('.recharts-bar-rectangle').last().hover();
+ await expect(monthly.locator('.chart-tooltip')).toContainText('20,400원');
+ await expect(monthly.locator('.chart-tooltip')).toContainText('100,000원');
+ await page.getByLabel('일별 조회 월').selectOption('2026-07');
+ await series.nth(1).locator('.recharts-bar-rectangle').last().click();
+ await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-08');
+ await monthly.locator('summary').click();
+ await expect(monthly.getByRole('columnheader',{name:'지출 금액',exact:true})).toBeVisible();
+ await expect(monthly.getByRole('columnheader',{name:'수입 금액',exact:true})).toBeVisible();
+ const august=monthly.getByRole('row').filter({has:page.getByRole('button',{name:'2026-08',exact:true})});
+ await expect(august).toContainText('20,400원');await expect(august).toContainText('100,000원');
+ await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'간식',exact:true}).click();
+ await expect(page.getByTestId('comparison-total-E')).toContainText('7,200원');
+ await expect(page.getByTestId('comparison-total-R')).toContainText('0원');
+ await expect(page.getByTestId('daily-total')).toContainText('7,200원');
+ await types.getByRole('button',{name:'지출',exact:true}).click();
+ await expect(types.getByRole('button',{name:'수입',exact:true})).toBeDisabled();
+ await types.getByRole('button',{name:'저축',exact:true}).click();
+ await expect(page.getByTestId('comparison-total-D')).toContainText('0원');
+ await expect(series).toHaveCount(2);
+ await monthly.getByRole('button',{name:'비교 종료',exact:true}).click();
+ await expect(monthly.getByRole('group',{name:'월별 비교 유형'})).toHaveCount(0);
+ await expect(page.getByTestId('monthly-total')).toContainText('7,200원');
+ await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+});
+
+test('모바일 비교와 거래 유형 변경·파일 교체 시 비교 상태 초기화',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/');await upload(page);
+ const monthly=page.locator('.monthly-card');
+ await monthly.getByRole('button',{name:'다른 유형과 비교하기',exact:true}).click();
+ await monthly.getByRole('group',{name:'월별 비교 유형'}).getByRole('button',{name:'기록',exact:true}).click();
+ await expect(page.getByTestId('comparison-total-O')).toContainText('1원');
+ await monthly.locator('summary').click();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.getByRole('group',{name:'거래 유형'}).getByRole('button',{name:'저축',exact:true}).click();
+ await expect(monthly.getByRole('button',{name:'비교 종료',exact:true})).toHaveCount(0);
+ await expect(page.getByTestId('monthly-total')).toContainText('50,000원');
+ await monthly.getByRole('button',{name:'다른 유형과 비교하기',exact:true}).click();
+ await monthly.getByRole('group',{name:'월별 비교 유형'}).getByRole('button',{name:'수입',exact:true}).click();
+ await upload(page,{moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]});
+ await expect(page.getByTestId('monthly-total')).toContainText('900원');
+ await expect(monthly.getByRole('button',{name:'다른 유형과 비교하기',exact:true})).toHaveAttribute('aria-expanded','false');
 });
