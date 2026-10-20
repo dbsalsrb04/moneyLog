@@ -30,3 +30,21 @@
 .detail-empty{display:grid;place-items:center;min-height:200px;padding:20px;color:#919db0;font-size:12px;text-align:center}
 @media(max-width:1000px){.detail-card{padding:20px 16px}.detail-columns,.detail-entry{grid-template-columns:minmax(70px,1fr) 85px minmax(85px,1.5fr) minmax(65px,1fr);gap:10px}}
 @media(max-width:760px){.detail-columns{display:none}.detail-entry{grid-template-columns:minmax(0,1fr) auto;gap:10px 16px}.detail-entry>div:nth-child(3),.detail-entry>div:nth-child(4){grid-column:1/-1}.detail-entry dt{position:static;width:auto;height:auto;margin:0;clip-path:none;font-size:10px;color:#8794aa}.detail-body{height:360px}.day-heading h3{font-size:16px}}
+.month-calendar{margin-top:18px;min-width:0}
+.calendar-legend{display:flex;justify-content:flex-end;gap:12px;margin-bottom:10px;font-size:10px}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calendar-weekdays{padding:6px 0 8px;text-align:center;font-size:11px;color:#8693a9}
+.calendar-weekdays>span:first-child{color:#d85c5c}
+.calendar-weekdays>span:last-child{color:#5278d2}
+.calendar-day{container-type:inline-size;display:flex;flex-direction:column;gap:3px;min-width:0;padding:7px 6px;border:1px solid #e6eaf2;border-radius:5px;background:#fff;color:#53617b;text-align:left}
+.calendar-day:hover{background:#f5f7ff;border-color:#aebff4}
+.calendar-day[aria-pressed=true]{background:#eef3ff;border-color:#6685ed;box-shadow:inset 0 0 0 1px #6685ed}
+.calendar-day-number{font-size:12px;line-height:17px;font-weight:600}
+.calendar-day-amounts{display:flex;flex-direction:column;width:100%;min-width:0}
+.calendar-amount{display:block;min-width:0;max-width:100%;height:14px;line-height:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.calendar-part-R{color:#2563ce}
+.calendar-part-E{color:#c83f48}
+.calendar-part-D{color:#23864a}
+.calendar-part-O{color:#7e8490}
+.calendar-blank{border-radius:5px;background:#fafbfe}
+@media(max-width:760px){.calendar-weekdays,.calendar-grid{gap:2px}.calendar-day{padding:5px 2px}.calendar-day-number{font-size:11px}.calendar-legend{gap:10px}.calendar-amount{height:13px;line-height:13px}}

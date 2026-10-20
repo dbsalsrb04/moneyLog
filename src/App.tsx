@@ -24,7 +24,8 @@ export default function App() {
   const partLabel = TRANSACTION_PARTS.find(item => item.value === part)!.label;
 
   const options = useMemo(() => getFilterOptions(backup?.transactions ?? [], part), [backup, part]);
-  const filtered = useMemo(() => filterTransactions(backup?.transactions ?? [], part, categories, tags), [backup, part, categories, tags]);
+  const matching = useMemo(() => filterTransactions(backup?.transactions ?? [], null, categories, tags), [backup, categories, tags]);
+  const filtered = useMemo(() => matching.filter(transaction => transaction.part === part), [matching, part]);
   const monthly = useMemo(() => backup ? aggregateMonthly(filtered, backup.latestMonth, period) : [], [backup, filtered, period]);
   const daily = useMemo(() => month ? aggregateDaily(filtered, month) : [], [filtered, month]);
   const months = useMemo(() => backup ? monthRange(backup.firstMonth < monthly[0].key ? backup.firstMonth : monthly[0].key, backup.latestMonth).reverse() : [], [backup, monthly]);
@@ -115,6 +116,7 @@ export default function App() {
           <DailyDetails
             key={datasetVersion}
             transactions={filtered}
+            calendarTransactions={matching}
             month={month}
             months={[...new Set([month, ...months])].sort().reverse()}
             partLabel={partLabel}

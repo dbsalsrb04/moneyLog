@@ -9,6 +9,7 @@ export type Transaction = { id: number | string; part: TransactionPart; category
 export type Backup = { raw: Record<string, unknown>; transactions: Transaction[]; latestMonth: string; firstMonth: string };
 export type Point = { key: string; label: string; amount: number };
 export type DayDetails = { dateKey: string; transactions: Transaction[] };
+export type CalendarDay = { dateKey: string; totals: Record<TransactionPart, number> };
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 export function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -45,8 +46,8 @@ export function getFilterOptions(transactions: Transaction[], part: TransactionP
   const sort = (values: Set<string>) => [...values].sort((a,b) => a.localeCompare(b,'ko'));
   return { categories: sort(categories), tags: sort(tags) };
 }
-export function filterTransactions(transactions: Transaction[], part: TransactionPart, categories: string[] = [], tags: string[] = []): Transaction[] {
-  return transactions.filter(t => t.part === part && (!categories.length || categories.some(c => t.category === c || t.category.startsWith(`${c}/`))) && (!tags.length || tags.some(tag => t.tags.includes(tag))));
+export function filterTransactions(transactions: Transaction[], part: TransactionPart | null, categories: string[] = [], tags: string[] = []): Transaction[] {
+  return transactions.filter(t => (part === null || t.part === part) && (!categories.length || categories.some(c => t.category === c || t.category.startsWith(`${c}/`))) && (!tags.length || tags.some(tag => t.tags.includes(tag))));
 }
 export function shiftMonth(month: string, delta: number): string {
   const [year,m] = month.split('-').map(Number);
@@ -80,6 +81,25 @@ export function getDailyDetails(transactions: Transaction[], month: string): Day
     const dateKey = `${month}-${String(index + 1).padStart(2, '0')}`;
     return { dateKey, transactions: byDay.get(dateKey) ?? [] };
   });
+}
+export function getMonthlyCalendar(transactions: Transaction[], month: string): CalendarDay[] {
+  const days: CalendarDay[] = Array.from({ length: daysInMonth(month) }, (_, index) => ({
+    dateKey: `${month}-${String(index + 1).padStart(2, '0')}`,
+    totals: { R: 0, E: 0, D: 0, O: 0 },
+  }));
+  transactions.forEach(transaction => {
+    if (transaction.dateKey.slice(0, 7) !== month) return;
+    const day = days[Number(transaction.dateKey.slice(8)) - 1];
+    day.totals[transaction.part] += transaction.amount;
+  });
+  return days;
+}
+export function getMonthStartWeekday(month: string): number {
+  const [year, number] = month.split('-').map(Number);
+  const date = new Date(0);
+  // UTC and setUTCFullYear also handle years 0001–0099 without local offsets.
+  date.setUTCFullYear(year, number - 1, 1);
+  return date.getUTCDay();
 }
 export function toggleSelection(selected: string[], value: string): string[] { return selected.includes(value) ? selected.filter(s=>s!==value) : [...selected,value]; }
 export const won = (n:number) => `${n.toLocaleString('ko-KR')}원`;
