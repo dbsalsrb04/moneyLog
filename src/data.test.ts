@@ -1,5 +1,5 @@
 import { describe,it,expect } from 'vitest';
-import { parseBackup,filterTransactions,getFilterOptions,aggregateMonthly,aggregateDaily,toggleSelection,validDate, type Transaction } from './data';
+import { parseBackup,filterTransactions,getFilterOptions,aggregateMonthly,aggregateDaily,getDailyDetails,toggleSelection,validDate, type Transaction } from './data';
 const t=(id:number,part:Transaction['part'],category:string,tags:string[],amount:number,dateKey='2026-08-01')=>({id,part,category,tags,amount,dateKey,memo:'',dateAt:0});
 const rows=[t(1,'E','식비/편의점',['간식','식비'],7200),t(2,'E','식비',['PC방에서','식비'],13200),t(3,'E','교통비/지쿠',['교통비'],978),t(4,'R','수입/월급',[],100000,'2026-10-20'),t(5,'D','저축',[],50000),t(6,'O','식비/배달',['식비'],1)];
 const parse=(moneyTrackTable:unknown=rows)=>parseBackup(JSON.stringify({moneyTrackTable,categoryInfoTable:[{categoryName:'식비/외식',id:8,order:65},{categoryName:'■식비'}],tagInfoTable:[{tagName:'여행',id:24,order:13}]}));
@@ -39,4 +39,25 @@ describe('빈 구간을 포함한 날짜 집계',()=>{
  it.each([12,6,3])('%i개월을 정확한 순서로 0원 포함 집계한다',n=>{const points=aggregateMonthly(filterTransactions(rows,'E',[],[]),'2026-10',n);expect(points).toHaveLength(n);expect(points.at(-1)).toEqual({key:'2026-10',label:'2026.10',amount:0});expect(points.find(p=>p.key==='2026-08')?.amount).toBe(21378);});
  it('연도를 넘어가고 31일·윤년·평년의 빈 날도 채운다',()=>{expect(aggregateMonthly([],'2026-01',3)[0].key).toBe('2025-11');expect(aggregateDaily([],'2024-02')).toHaveLength(29);expect(aggregateDaily([],'2026-02')).toHaveLength(28);const d=aggregateDaily(filterTransactions(rows,'E',[],[]),'2026-08');expect(d).toHaveLength(31);expect(d[0].amount).toBe(21378);expect(d[1].amount).toBe(0);});
  it('dateAt 대신 dateKey를 사용한다',()=>expect(aggregateDaily(filterTransactions(rows,'E',[],[]),'2026-08')[0].amount).toBe(21378));
+});
+
+describe('세부 내역의 날짜 페이지',()=>{
+ it('필터 결과를 날짜별로 나누고 빈 날짜와 파일 순서를 유지한다',()=>{
+  const input=[...rows,t(7,'E','식비/카페',['간식'],5000),t(8,'E','식비',['간식'],100,'2026-07-31')];
+  const before=JSON.stringify(input),filtered=filterTransactions(input,'E',['식비'],['간식']);
+  const pages=getDailyDetails(filtered,'2026-08');
+  expect(pages).toHaveLength(31);
+  expect(pages[0].dateKey).toBe('2026-08-01');
+  expect(pages[0].transactions.map(t=>t.id)).toEqual([1,7]);
+  expect(pages[1].transactions).toEqual([]);
+  expect(pages.at(-1)?.dateKey).toBe('2026-08-31');
+  expect(JSON.stringify(input)).toBe(before);
+  expect(pages.map(p=>p.transactions.reduce((sum,t)=>sum+t.amount,0))).toEqual(aggregateDaily(filtered,'2026-08').map(p=>p.amount));
+ });
+ it('윤년과 평년의 월말을 포함하고 다른 월 거래는 제외한다',()=>{
+  expect(getDailyDetails(rows,'2024-02')).toHaveLength(29);
+  const pages=getDailyDetails(rows,'2026-02');
+  expect(pages).toHaveLength(28);expect(pages.at(-1)?.dateKey).toBe('2026-02-28');
+  expect(pages.every(p=>p.transactions.length===0)).toBe(true);
+ });
 });

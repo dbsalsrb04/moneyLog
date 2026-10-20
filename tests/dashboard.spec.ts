@@ -105,3 +105,72 @@ test('드래그 앤 드롭 업로드·교체·잘못된 파일 및 다중 파일
  await drop([{name:'replacement.JSON',content:JSON.stringify({moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]})}]);
  await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2024-02');
 });
+
+test('금액 표는 날짜 열을 유지하고 가장 긴 금액의 1.3배 너비를 사용한다',async({page})=>{
+ await page.goto('/');await upload(page);
+ for(const regionName of ['월별 지출','일별 지출']){
+  const chart=page.getByRole('region',{name:regionName,exact:true});
+  await chart.locator('summary').click();
+  const container=chart.locator('.amount-table-container');
+  await expect.poll(async()=>container.evaluate(element=>{
+   const cells=[...element.querySelectorAll<HTMLElement>('td.amount-cell')];
+   const maxText=Math.max(...[...element.querySelectorAll<HTMLElement>('.amount-text')].map(text=>text.getBoundingClientRect().width));
+   const amountWidth=cells[0].getBoundingClientRect().width;
+   const dateWidth=element.querySelector('tbody th')!.getBoundingClientRect().width;
+   return Math.abs(amountWidth-maxText*1.3)<2 && Math.abs(dateWidth-element.clientWidth*.5)<2;
+  })).toBe(true);
+ }
+ await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'간식',exact:true}).click();
+ await expect.poll(async()=>page.getByRole('region',{name:'월별 지출',exact:true}).locator('.amount-table-container').evaluate(element=>{
+  const maxText=Math.max(...[...element.querySelectorAll<HTMLElement>('.amount-text')].map(text=>text.getBoundingClientRect().width));
+  return Math.abs(element.querySelector('td.amount-cell')!.getBoundingClientRect().width-maxText*1.3)<2;
+ })).toBe(true);
+});
+
+test('세부 내역은 하루씩 넘기며 필터·유형·월과 연동된다',async({page})=>{
+ await page.goto('/');
+ await upload(page,{...backup,moneyTrackTable:backup.moneyTrackTable.map(t=>({...t,memo:t.id===1?'편의점\n간식 구매':`메모 ${t.id}`}))});
+ const detail=page.getByRole('region',{name:'세부 지출',exact:true});
+ await expect(detail.getByRole('button',{name:'이전 날짜',exact:true})).toBeDisabled();
+ await expect(detail.locator('time')).toHaveText('2026-08-01');
+ await expect(detail.getByRole('group',{name:'2026-08-01 세부 내역'})).toContainText('편의점');
+ await expect(detail.locator('.detail-entry')).toHaveCount(1);
+ await expect(detail.locator('.detail-entry')).toContainText('7,200원');
+ await detail.getByRole('button',{name:'다음 날짜',exact:true}).click();
+ await expect(detail.locator('time')).toHaveText('2026-08-02');
+ await expect(detail.locator('.detail-entry')).toContainText('13,200원');
+ const tagFilter=page.getByRole('region',{name:'태그 필터'});
+ await tagFilter.getByRole('button',{name:'간식',exact:true}).click();
+ await expect(detail.locator('time')).toHaveText('2026-08-02');
+ await expect(detail.locator('.detail-empty')).toBeVisible();
+ await detail.getByRole('button',{name:'이전 날짜',exact:true}).click();
+ await expect(detail.locator('.detail-entry')).toContainText('7,200원');
+ await page.getByRole('region',{name:'카테고리 필터'}).getByRole('button',{name:'교통비',exact:true}).click();
+ await expect(detail.locator('.detail-empty')).toBeVisible();
+ await page.getByRole('button',{name:'초기화',exact:true}).click();
+ await page.getByLabel('세부 내역 조회 월').selectOption('2026-07');
+ await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
+ await expect(detail.locator('time')).toHaveText('2026-07-01');
+ await expect(detail.locator('.detail-entry')).toContainText('978원');
+ await page.getByRole('group',{name:'거래 유형'}).getByRole('button',{name:'저축',exact:true}).click();
+ await expect(page.getByRole('region',{name:'세부 저축',exact:true}).locator('.detail-empty')).toBeVisible();
+ await page.getByLabel('일별 조회 월').selectOption('2026-08');
+ await expect(page.getByLabel('세부 내역 조회 월')).toHaveValue('2026-08');
+ await expect(page.getByRole('region',{name:'세부 저축',exact:true}).locator('.detail-entry')).toContainText('50,000원');
+});
+
+test('윤년 월말과 파일 교체, 모바일에서도 세부 내역이 한 날짜로 제한된다',async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto('/');
+ await upload(page,{moneyTrackTable:[{id:1,part:'E',category:'매우긴카테고리/하위분류',amount:1000,memo:'아주긴메모'.repeat(20),tags:['태그'.repeat(30)],dateKey:'2024-02-29'}]});
+ const detail=page.getByRole('region',{name:'세부 지출',exact:true});
+ for(let day=1;day<29;day++)await detail.getByRole('button',{name:'다음 날짜',exact:true}).click();
+ await expect(detail.locator('time')).toHaveText('2024-02-29');
+ await expect(detail.getByRole('button',{name:'다음 날짜',exact:true})).toBeDisabled();
+ await expect(detail.locator('.detail-entry')).toHaveCount(1);
+ expect(await detail.locator('.detail-body').evaluate(element=>element.getBoundingClientRect().height)).toBeLessThanOrEqual(360);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await upload(page,{moneyTrackTable:[{id:2,part:'E',category:'식비',amount:2500,tags:[],dateKey:'2026-02-01'}]});
+ await expect(detail.locator('time')).toHaveText('2026-02-01');
+ await expect(detail.locator('.detail-entry')).toContainText('2,500원');
+ await expect(detail.getByRole('button',{name:'이전 날짜',exact:true})).toBeDisabled();
+});

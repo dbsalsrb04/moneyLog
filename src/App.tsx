@@ -7,6 +7,7 @@ import {
 import FileUpload from './components/FileUpload';
 import FilterPanel from './components/FilterPanel';
 import SpendingChart from './components/SpendingChart';
+import DailyDetails from './components/DailyDetails';
 
 export default function App() {
   const [backup, setBackup] = useState<Backup | null>(null);
@@ -111,6 +112,14 @@ export default function App() {
             <div className="chart-total" data-testid="daily-total">{won(total(daily))}<span>{month.replace('-', '년 ')}월 {partLabel}</span></div>
             <SpendingChart points={daily} partLabel={partLabel} daily />
           </section>
+          <DailyDetails
+            key={datasetVersion}
+            transactions={filtered}
+            month={month}
+            months={[...new Set([month, ...months])].sort().reverse()}
+            partLabel={partLabel}
+            onMonthChange={setMonth}
+          />
         </> : <section className="card empty-state"><p>JSON 파일을 선택하면 분석 결과가 표시됩니다.</p></section>}</div>
         <aside>
           <div className="filter-toolbar"><span>필터 설정</span><button disabled={!backup || (!categories.length && !tags.length)} onClick={resetFilters}><RotateCcw size={12} />초기화</button></div>

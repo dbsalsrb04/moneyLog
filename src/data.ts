@@ -8,6 +8,7 @@ export type TransactionPart = typeof TRANSACTION_PARTS[number]['value'];
 export type Transaction = { id: number | string; part: TransactionPart; category: string; amount: number; memo: string; tags: string[]; dateKey: string; [key: string]: unknown };
 export type Backup = { raw: Record<string, unknown>; transactions: Transaction[]; latestMonth: string; firstMonth: string };
 export type Point = { key: string; label: string; amount: number };
+export type DayDetails = { dateKey: string; transactions: Transaction[] };
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 export function validDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -66,6 +67,19 @@ export function aggregateDaily(transactions: Transaction[], month: string): Poin
   const totals = new Map<string,number>();
   transactions.forEach(t => totals.set(t.dateKey,(totals.get(t.dateKey)??0)+t.amount));
   return Array.from({length:daysInMonth(month)},(_,i)=> {const key=`${month}-${String(i+1).padStart(2,'0')}`; return {key,label:`${i+1}`,amount:totals.get(key)??0};});
+}
+export function getDailyDetails(transactions: Transaction[], month: string): DayDetails[] {
+  const byDay = new Map<string, Transaction[]>();
+  transactions.forEach(transaction => {
+    if (transaction.dateKey.slice(0, 7) !== month) return;
+    const entries = byDay.get(transaction.dateKey) ?? [];
+    entries.push(transaction);
+    byDay.set(transaction.dateKey, entries);
+  });
+  return Array.from({ length: daysInMonth(month) }, (_, index) => {
+    const dateKey = `${month}-${String(index + 1).padStart(2, '0')}`;
+    return { dateKey, transactions: byDay.get(dateKey) ?? [] };
+  });
 }
 export function toggleSelection(selected: string[], value: string): string[] { return selected.includes(value) ? selected.filter(s=>s!==value) : [...selected,value]; }
 export const won = (n:number) => `${n.toLocaleString('ko-KR')}원`;
