@@ -341,20 +341,18 @@ test('세부 내역의 월 화살표와 12개월 팝업은 조회 월·필터·�
  await expect(page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'교통비',exact:true})).toHaveAttribute('aria-pressed','true');
 });
 
-test('2027년의 연도 그리드와 더 넓은 구간을 단계별로 선택한다',async({page})=>{
+test('12개 연도 목록에서 추가 확대 없이 연도와 월을 선택한다',async({page})=>{
  await page.goto('/');await upload(page,{moneyTrackTable:[{id:1,part:'E',category:'식비',amount:1000,tags:[],dateKey:'2027-06-01'}]});
  const trigger=page.getByRole('button',{name:'세부 내역 조회 월',exact:true});
  await trigger.click();
  const popup=page.getByRole('dialog',{name:'조회 월 선택'});
  await popup.getByRole('button',{name:'연도 선택',exact:true}).click();
  await expect(popup.getByRole('group',{name:'연도 목록'}).getByRole('button')).toHaveText(['2021','2022','2023','2024','2025','2026','2027','2028','2029','2030','2031','2032']);
- await popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true}).click();
- await expect(popup.getByRole('group',{name:'연도 범위 목록'}).getByRole('button')).toHaveCount(12);
- await popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true}).click();
+ await expect(popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true})).toHaveCount(0);
+ await expect(popup.locator('.picker-zoom')).toHaveCount(0);
+ await expect(popup.locator('.picker-year-heading')).toHaveText('2021–2032년');
  await expect(trigger).toHaveText('2027년 6월');
  await expect(page.getByLabel('일별 조회 월')).toHaveValue('2027-06');
- await popup.getByRole('group',{name:'연도 범위 목록'}).getByRole('button',{pressed:true}).click();
- await popup.getByRole('group',{name:'연도 범위 목록'}).getByRole('button',{pressed:true}).click();
  await popup.getByRole('button',{name:'2028년 선택',exact:true}).click();
  await expect(popup.getByRole('button',{name:'2028년 2월 선택',exact:true})).toBeVisible();
  await expect(trigger).toHaveText('2027년 6월');
@@ -389,24 +387,19 @@ test('팝업 탐색·키보드 선택·Escape·바깥 클릭과 외부 월 변�
  await expect(trigger).toHaveText('2027년 1월');await expect(popup).toHaveCount(0);await expect(trigger).toBeFocused();
 });
 
-test('모바일에서 모든 연도 범위까지 확대하고 양 끝 연도를 선택해도 넘치지 않는다',async({page})=>{
+test('모바일에서 연도 목록을 이동하고 월을 선택해도 넘치지 않는다',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await upload(page);
  const trigger=page.getByRole('button',{name:'세부 내역 조회 월',exact:true});
  const popup=page.getByRole('dialog',{name:'조회 월 선택'});
  await trigger.click();
  const bounds=await popup.boundingBox();expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(390);
  await popup.getByRole('button',{name:'연도 선택',exact:true}).click();
- for(let level=0;level<3;level++)await popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true}).click();
- await expect(popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true})).toBeDisabled();
- for(let level=0;level<3;level++)await popup.getByRole('group',{name:'연도 범위 목록'}).locator('button:not(:disabled)').first().click();
- await popup.getByRole('button',{name:'1년 선택',exact:true}).click();
- await popup.getByRole('button',{name:'1년 1월 선택',exact:true}).click();
- await expect(trigger).toHaveText('1년 1월');await expect(page.getByRole('button',{name:'이전 달',exact:true})).toBeDisabled();
- await trigger.click();await popup.getByRole('button',{name:'연도 선택',exact:true}).click();
- for(let level=0;level<3;level++)await popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true}).click();
- for(let level=0;level<3;level++)await popup.getByRole('group',{name:'연도 범위 목록'}).locator('button:not(:disabled)').last().click();
- await popup.getByRole('button',{name:'9999년 선택',exact:true}).click();
- await popup.getByRole('button',{name:'9999년 12월 선택',exact:true}).click();
- await expect(trigger).toHaveText('9999년 12월');await expect(page.getByRole('button',{name:'다음 달',exact:true})).toBeDisabled();
+ await expect(popup.getByRole('button',{name:'더 넓은 연도 범위 선택',exact:true})).toHaveCount(0);
+ await popup.getByRole('button',{name:'다음 연도 구간',exact:true}).click();
+ await expect(popup.getByRole('group',{name:'연도 목록'}).getByRole('button')).toHaveCount(12);
+ await popup.getByRole('button',{name:'2032년 선택',exact:true}).click();
+ await popup.getByRole('button',{name:'2032년 12월 선택',exact:true}).click();
+ await expect(trigger).toHaveText('2032년 12월');
+ await expect(page.getByLabel('일별 조회 월')).toHaveValue('2032-12');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

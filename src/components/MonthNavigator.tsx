@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { canZoomOut, getYearChoices, pageView, stepMonth, viewEndYear, zoomOut, type PickerView } from '../monthPicker';
+import { getYearChoices, pageView, stepMonth, viewEndYear, yearView, type PickerView } from '../monthPicker';
 
 type Props = { month: string; onChange: (month: string) => void };
 
@@ -86,24 +86,23 @@ export default function MonthNavigator({ month, onChange }: Props) {
     {open && <div id={dialogId} className="month-picker-popup" role="dialog" aria-label="조회 월 선택" aria-modal="false">
       <div className="month-picker-heading">
         <button className="picker-page-arrow" aria-label={view.level === 0 ? '이전 연도' : '이전 연도 구간'} disabled={view.start === 1} onClick={() => setView(previous => pageView(previous, -1))}>{'<'}</button>
-        <button className="picker-zoom" aria-label={view.level === 0 ? '연도 선택' : '더 넓은 연도 범위 선택'} disabled={!canZoomOut(view)} onClick={() => setView(previous => zoomOut(previous))}>
+        {view.level === 0 ? <button className="picker-zoom" aria-label="연도 선택" onClick={() => setView(yearView(view.start))}>
           <span>{heading}</span><span aria-hidden="true">…</span>
-        </button>
+        </button> : <span className="picker-year-heading">{heading}</span>}
         <button className="picker-page-arrow" aria-label={view.level === 0 ? '다음 연도' : '다음 연도 구간'} disabled={viewEndYear(view) === 9999} onClick={() => setView(previous => pageView(previous, 1))}>{'>'}</button>
       </div>
-      <div ref={grid} className="month-picker-grid" role="group" aria-label={view.level === 0 ? '월 목록' : view.level === 1 ? '연도 목록' : '연도 범위 목록'} onKeyDown={gridKeyDown}>
+      <div ref={grid} className="month-picker-grid" role="group" aria-label={view.level === 0 ? '월 목록' : '연도 목록'} onKeyDown={gridKeyDown}>
         {view.level === 0 ? Array.from({ length: 12 }, (_, index) => <button
           key={`month-${index}`}
           aria-label={`${view.start}년 ${index + 1}월 선택`}
           aria-pressed={view.start === year && index + 1 === monthNumber}
           onClick={() => changeMonth(`${String(view.start).padStart(4, '0')}-${String(index + 1).padStart(2, '0')}`)}
         >{index + 1}</button>) : getYearChoices(view).map(choice => <button
-          key={`year-${view.level}-${choice.start}`}
-          disabled={choice.disabled}
-          aria-label={choice.disabled ? '선택 불가' : choice.start === choice.end ? `${choice.start}년 선택` : `${choice.start}–${choice.end}년 선택`}
-          aria-pressed={!choice.disabled && year >= choice.start && year <= choice.end}
-          onClick={() => setView({ level: view.level - 1, start: choice.start })}
-        >{choice.disabled ? '—' : choice.start === choice.end ? choice.start : <>{choice.start}<span className="picker-range-separator">–</span>{choice.end}</>}</button>)}
+          key={`year-${choice}`}
+          aria-label={`${choice}년 선택`}
+          aria-pressed={year === choice}
+          onClick={() => setView({ level: 0, start: choice })}
+        >{choice}</button>)}
       </div>
     </div>}
   </div>;
