@@ -151,7 +151,6 @@ export default function App() {
             transactions={filtered}
             calendarTransactions={matching}
             month={month}
-            months={[...new Set([month, ...months])].sort().reverse()}
             partLabel={partLabel}
             onMonthChange={setMonth}
           />

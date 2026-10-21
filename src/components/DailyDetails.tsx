@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { CalendarDays, List } from 'lucide-react';
+import { List } from 'lucide-react';
 import { getDailyDetails, getMonthlyCalendar, won, type CalendarDay, type DayDetails, type Transaction } from '../data';
 import MonthCalendar from './MonthCalendar';
+import MonthNavigator from './MonthNavigator';
 
 // Display names confirmed by the user. Ask before adding names for other keys.
 const FIELD_LABELS = {
@@ -16,7 +17,6 @@ type Props = {
   transactions: Transaction[];
   calendarTransactions: Transaction[];
   month: string;
-  months: string[];
   partLabel: string;
   onMonthChange: (month: string) => void;
 };
@@ -51,16 +51,14 @@ function DayPages({ pages, calendarDays }: { pages: DayDetails[]; calendarDays: 
   </>;
 }
 
-export default function DailyDetails({ transactions, calendarTransactions, month, months, partLabel, onMonthChange }: Props) {
+export default function DailyDetails({ transactions, calendarTransactions, month, partLabel, onMonthChange }: Props) {
   const pages = useMemo(() => getDailyDetails(transactions, month), [transactions, month]);
   const calendarDays = useMemo(() => getMonthlyCalendar(calendarTransactions, month), [calendarTransactions, month]);
   return <section className="card detail-card" aria-label={`세부 ${partLabel}`}>
     <div className="chart-header">
       <div className="chart-title"><span className="icon-box"><List size={18} /></span><h2>세부 {partLabel}</h2></div>
-      <label className="month-select"><CalendarDays size={14} /><select aria-label="세부 내역 조회 월" value={month} onChange={event => onMonthChange(event.target.value)}>
-        {months.map(value => <option key={value} value={value}>{value.split('-')[0]}년 {Number(value.split('-')[1])}월</option>)}
-      </select></label>
     </div>
+    <MonthNavigator month={month} onChange={onMonthChange} />
     <DayPages key={month} pages={pages} calendarDays={calendarDays} />
   </section>;
 }
