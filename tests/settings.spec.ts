@@ -67,16 +67,18 @@ test('개별 버튼의 전체 경로·그룹 구분선·다중 필터를 대시�
   await expect(groupStart.getByRole('button')).toHaveText('식비/식사1');
   await categories.getByRole('button', { name: '식비/식사1', exact: true }).click();
   await categories.getByRole('button', { name: '식비/식사3', exact: true }).click();
+  await expect(categories.locator('.lucide-check')).toHaveCount(0);
   await expect(page.getByTestId('monthly-total')).toContainText('4,000원');
   await page.getByRole('region', { name: '태그 필터', exact: true }).getByRole('button', { name: '간식', exact: true }).click();
   await expect(page.getByTestId('daily-total')).toContainText('4,000원');
   await page.getByRole('button', { name: '검색', exact: true }).click();
   const search = page.getByRole('dialog', { name: '검색', exact: true });
-  await search.getByRole('button', { name: '카테고리별', exact: true }).click();
   const searchCategories = search.getByRole('region', { name: '카테고리 필터', exact: true });
   await expect(searchCategories.locator('.category-buttons button')).toHaveCount(6);
   await expect(searchCategories.getByRole('button', { name: '수입/월급', exact: true })).toBeVisible();
   await searchCategories.getByRole('button', { name: '식비/식사2', exact: true }).click();
+  await expect(searchCategories.locator('.lucide-check')).toHaveCount(0);
+  await expect(search.getByRole('region', { name: '태그 필터' }).locator('.lucide-check')).toHaveCount(0);
   await expect(search.getByTestId('search-total-E')).toHaveText('2,000원');
   await search.getByRole('button', { name: '검색 닫기', exact: true }).click();
   await setMode(page, '트리');
@@ -85,7 +87,6 @@ test('개별 버튼의 전체 경로·그룹 구분선·다중 필터를 대시�
   await expect(categories.getByRole('button', { name: '식비/식사1', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(categories.getByRole('button', { name: '식비/식사3', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: '검색', exact: true }).click();
-  await search.getByRole('button', { name: '카테고리별', exact: true }).click();
   await expect(searchCategories.getByRole('button', { name: '식비 펼치기', exact: true })).toBeVisible();
 });
 
@@ -93,6 +94,7 @@ test('트리에서 선택한 상위 분류와 기간·월은 방식 전환 시 �
   await page.goto('/'); await upload(page);
   const categories = page.getByRole('region', { name: '카테고리 필터', exact: true });
   await categories.getByRole('button', { name: '식비', exact: true }).click();
+  await expect(categories.locator('.lucide-check')).toHaveCount(0);
   await page.getByRole('button', { name: '3개월', exact: true }).click();
   await page.getByLabel('일별 조회 월').selectOption('2026-07');
   await setMode(page, '개별 버튼');
@@ -127,6 +129,9 @@ test('모바일의 긴 개별 버튼은 줄바꿈하고 설정은 파일 교체 
   expect(await categories.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await upload(page, { moneyTrackTable: [{ ...backup.moneyTrackTable[0], category: '새분류/새항목' }] });
   await expect(categories.locator('.category-buttons button')).toHaveText(['새분류/새항목']);
+  await categories.getByRole('button', { name: '새분류/새항목', exact: true }).click();
+  await expect(categories.locator('.lucide-check')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '태그 필터' }).locator('.lucide-check')).toHaveCount(0);
   await page.getByRole('button', { name: '검색', exact: true }).click();
   const search = page.getByRole('dialog', { name: '검색', exact: true });
   await search.getByRole('button', { name: '카테고리별', exact: true }).click();

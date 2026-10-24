@@ -12,8 +12,8 @@ export default function SearchDialog({ transactions, onClose }: Props) {
   const [query, setQuery] = useState('');
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [showCategories, setShowCategories] = useState(false);
-  const [showTags, setShowTags] = useState(false);
+  const [showCategories, setShowCategories] = useState(() => !window.matchMedia('(max-width: 760px)').matches);
+  const [showTags, setShowTags] = useState(() => !window.matchMedia('(max-width: 760px)').matches);
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const resultsList = useRef<HTMLDivElement>(null);
@@ -85,43 +85,49 @@ export default function SearchDialog({ transactions, onClose }: Props) {
       <h2 id={`${id}-title`}><Search className="memo-search-icon" size={20} />검색</h2>
       <button className="search-close" aria-label="검색 닫기" onClick={onClose}><X size={21} /></button>
     </div>
-    <div className="search-controls">
-      <label className="memo-search-field">
-        <Search className="memo-search-icon" size={19} />
-        <span className="sr-only">메모 검색</span>
-        <input ref={input} type="search" placeholder="메모 검색" value={query} onChange={event => setQuery(event.target.value)} />
-      </label>
-      <div className="search-filter-toggles">
-        <button aria-expanded={showCategories} aria-controls={`${id}-categories`} onClick={() => setShowCategories(previous => !previous)}>
-          카테고리별{categories.length > 0 && <span className="search-filter-count">{categories.length}</span>}<ChevronDown size={15} />
-        </button>
-        <button aria-expanded={showTags} aria-controls={`${id}-tags`} onClick={() => setShowTags(previous => !previous)}>
-          태그별{tags.length > 0 && <span className="search-filter-count">{tags.length}</span>}<ChevronDown size={15} />
-        </button>
-      </div>
-      <div className="search-filter-panels">
-        <div id={`${id}-categories`} hidden={!showCategories}>
-          <FilterPanel kind="category" options={options.categories} recordedCategories={options.recordedCategories} selected={categories} onChange={setCategories} />
+    <div className="search-dialog-body">
+      <div className="search-main">
+        <div className="search-controls">
+          <label className="memo-search-field">
+            <Search className="memo-search-icon" size={19} />
+            <span className="sr-only">메모 검색</span>
+            <input ref={input} type="search" placeholder="메모 검색" value={query} onChange={event => setQuery(event.target.value)} />
+          </label>
         </div>
-        <div id={`${id}-tags`} hidden={!showTags}>
-          <FilterPanel kind="tag" options={options.tags} selected={tags} onChange={setTags} />
+        <section className="search-summary" aria-label="검색 결과 합산">
+          <div className="search-summary-heading"><h3>검색 결과 합산</h3><span role="status">{results.length.toLocaleString('ko-KR')}건</span></div>
+          <div className="search-totals">{TRANSACTION_PARTS.map(part => <div key={part.value} className={`calendar-part-${part.value}`}>
+            <span>{part.label}</span><strong data-testid={`search-total-${part.value}`}>{won(totals[part.value])}</strong>
+          </div>)}</div>
+        </section>
+        <div ref={resultsList} className="search-results" role="list" aria-label="검색 결과" tabIndex={0}>
+          {results.length ? results.map((transaction, index) => <dl className="search-result" role="listitem" key={`${transaction.id}-${index}`}>
+            <div><dt className="sr-only">날짜</dt><dd><time dateTime={transaction.dateKey}>{formatSearchDate(transaction.dateKey)}</time></dd></div>
+            <div className="search-result-amount"><dt className="sr-only">금액</dt><dd className={`calendar-part-${transaction.part}`} aria-label={`${TRANSACTION_PARTS.find(part => part.value === transaction.part)!.label} ${won(transaction.amount)}`}>{won(transaction.amount)}</dd></div>
+            <div><dt className="sr-only">메모</dt><dd className="search-result-memo"><MemoPreview memo={transaction.memo} /></dd></div>
+            <div><dt className="sr-only">카테고리</dt><dd>{transaction.category || '—'}</dd></div>
+            <div><dt className="sr-only">태그</dt><dd className="detail-tags">{transaction.tags.length ? transaction.tags.map((tag, tagIndex) => <span className="detail-tag" key={`${tag}-${tagIndex}`}>{tag}</span>) : '—'}</dd></div>
+          </dl>) : <p className="search-empty">검색 결과가 없습니다.</p>}
         </div>
       </div>
-    </div>
-    <section className="search-summary" aria-label="검색 결과 합산">
-      <div className="search-summary-heading"><h3>검색 결과 합산</h3><span role="status">{results.length.toLocaleString('ko-KR')}건</span></div>
-      <div className="search-totals">{TRANSACTION_PARTS.map(part => <div key={part.value} className={`calendar-part-${part.value}`}>
-        <span>{part.label}</span><strong data-testid={`search-total-${part.value}`}>{won(totals[part.value])}</strong>
-      </div>)}</div>
-    </section>
-    <div ref={resultsList} className="search-results" role="list" aria-label="검색 결과" tabIndex={0}>
-      {results.length ? results.map((transaction, index) => <dl className="search-result" role="listitem" key={`${transaction.id}-${index}`}>
-        <div><dt className="sr-only">날짜</dt><dd><time dateTime={transaction.dateKey}>{formatSearchDate(transaction.dateKey)}</time></dd></div>
-        <div className="search-result-amount"><dt className="sr-only">금액</dt><dd className={`calendar-part-${transaction.part}`} aria-label={`${TRANSACTION_PARTS.find(part => part.value === transaction.part)!.label} ${won(transaction.amount)}`}>{won(transaction.amount)}</dd></div>
-        <div><dt className="sr-only">메모</dt><dd className="search-result-memo"><MemoPreview memo={transaction.memo} /></dd></div>
-        <div><dt className="sr-only">카테고리</dt><dd>{transaction.category || '—'}</dd></div>
-        <div><dt className="sr-only">태그</dt><dd className="detail-tags">{transaction.tags.length ? transaction.tags.map((tag, tagIndex) => <span className="detail-tag" key={`${tag}-${tagIndex}`}>{tag}</span>) : '—'}</dd></div>
-      </dl>) : <p className="search-empty">검색 결과가 없습니다.</p>}
+      <aside className="search-sidebar" aria-label="검색 필터">
+        <div className="search-filter-section">
+          <button className="search-filter-toggle" aria-expanded={showCategories} aria-controls={`${id}-categories`} onClick={() => setShowCategories(previous => !previous)}>
+            카테고리별{categories.length > 0 && <span className="search-filter-count">{categories.length}</span>}<ChevronDown size={15} />
+          </button>
+          <div id={`${id}-categories`} hidden={!showCategories}>
+            <FilterPanel kind="category" options={options.categories} recordedCategories={options.recordedCategories} selected={categories} onChange={setCategories} />
+          </div>
+        </div>
+        <div className="search-filter-section">
+          <button className="search-filter-toggle" aria-expanded={showTags} aria-controls={`${id}-tags`} onClick={() => setShowTags(previous => !previous)}>
+            태그별{tags.length > 0 && <span className="search-filter-count">{tags.length}</span>}<ChevronDown size={15} />
+          </button>
+          <div id={`${id}-tags`} hidden={!showTags}>
+            <FilterPanel kind="tag" options={options.tags} selected={tags} onChange={setTags} />
+          </div>
+        </div>
+      </aside>
     </div>
   </dialog>, document.body);
 }

@@ -1,4 +1,4 @@
-import { Check, FolderTree, Hash } from 'lucide-react';
+import { FolderTree, Hash } from 'lucide-react';
 import { toggleSelection } from '../data';
 import CategoryTree from './CategoryTree';
 import CategoryButtons from './CategoryButtons';
@@ -11,9 +11,9 @@ export default function FilterPanel({kind,options,recordedCategories,selected,on
   const visibleOptions = category && categorySelectionMode === 'buttons'
     ? [...new Set([...(recordedCategories ?? options), ...selected])].sort((a,b) => a.localeCompare(b,'ko'))
     : options;
-  return <section className="card filter-card" aria-label={category?'카테고리 필터':'태그 필터'}>
+  return <section className={`card filter-card ${category?'category-filter':''}`} aria-label={category?'카테고리 필터':'태그 필터'}>
     <div className="filter-heading"><span className={`icon-box ${category?'':'violet'}`}>{category?<FolderTree size={18}/>:<Hash size={18}/>}</span><h2>{category?'카테고리':'태그'}</h2><span className="count">{visibleOptions.length}</span></div>
-    <div className="filter-scroll"><div className="chips"><button disabled={disabled} className={`chip ${selected.length===0?'selected':''}`} aria-pressed={selected.length===0} onClick={()=>onChange([])}>{!selected.length&&<Check size={13}/>}전체</button></div>
+    <div className="filter-scroll"><div className="chips"><button disabled={disabled} className={`chip ${selected.length===0?'selected':''}`} aria-pressed={selected.length===0} onClick={()=>onChange([])}>전체</button></div>
     {category ? categorySelectionMode === 'tree'
       ? <CategoryTree options={options} selected={selected} onChange={onChange}/>
       : <CategoryButtons options={visibleOptions} selected={selected} onChange={onChange}/>

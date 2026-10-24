@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react';
-import { Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { toggleSelection } from '../data';
 
 type CategoryNode = { path: string; label: string; children: CategoryNode[] };
@@ -55,7 +55,7 @@ export default function CategoryTree({ options, selected, onChange }: Props) {
           aria-pressed={selected.includes(node.path)}
           onClick={() => onChange(toggleSelection(selected, node.path))}
         >
-          {selected.includes(node.path) ? <Check size={13} /> : depth > 0 ? <span className="branch">└</span> : null}
+          {depth > 0 ? <span className="branch">└</span> : null}
           {node.label}
         </button>
         {node.children.length > 0 && <button

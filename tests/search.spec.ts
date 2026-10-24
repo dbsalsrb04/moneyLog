@@ -41,7 +41,10 @@ test('검색 버튼 위치, 실시간 메모 검색과 유형별 합계·색상�
   await expect(input).toBeFocused();
   const viewport = page.viewportSize()!;
   const dialogBounds = (await dialog.boundingBox())!;
-  expect(dialogBounds.width).toBeCloseTo(Math.min(1360, viewport.width - 48) * .7, 0);
+  const mainWidth = Math.min(1360, viewport.width - 48) * .7;
+  expect(dialogBounds.width).toBeCloseTo(Math.min(mainWidth + 304, viewport.width - 32), 0);
+  expect((await dialog.locator('.search-main').boundingBox())!.width).toBeCloseTo(mainWidth - 2, 0);
+  expect(dialogBounds.x + dialogBounds.width / 2).toBeCloseTo(viewport.width / 2, 0);
   expect(dialogBounds.height).toBeCloseTo(Math.min(820, viewport.height - 48) * .9, 0);
   await expect(dialog.getByRole('listitem')).toHaveCount(9);
   await input.fill('라면');
@@ -80,9 +83,8 @@ test('접는 검색 필터의 계층·OR/AND·전체 선택과 접은 후 선택
   const tagToggle = dialog.getByRole('button', { name: /^태그별/ });
   const categories = dialog.getByRole('region', { name: '카테고리 필터' });
   const tags = dialog.getByRole('region', { name: '태그 필터' });
-  await expect(categoryToggle).toHaveAttribute('aria-expanded', 'false');
-  await expect(tagToggle).toHaveAttribute('aria-expanded', 'false');
-  await categoryToggle.click(); await tagToggle.click();
+  await expect(categoryToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(tagToggle).toHaveAttribute('aria-expanded', 'true');
   await expect(categories.getByRole('button', { name: '미사용 분류', exact: true })).toHaveCount(0);
   await expect(tags.getByRole('button', { name: '미사용 태그', exact: true })).toHaveCount(0);
   await categories.getByRole('button', { name: '식비', exact: true }).click();
@@ -133,7 +135,7 @@ test('키보드 포커스·Escape·바깥 클릭과 파일 교체 후 검색 초
   await expect(dialog.getByRole('listitem')).toHaveCount(0);
 });
 
-test('모바일에서 긴 검색 결과와 많은 항목은 팝업 안에서 스크롤한다', async ({ page }) => {
+test('모바일은 검색창 아래 필터·합계·결과를 한 영역에서 스크롤한다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await upload(page, { moneyTrackTable: Array.from({ length: 100 }, (_, index) => ({
@@ -143,13 +145,22 @@ test('모바일에서 긴 검색 결과와 많은 항목은 팝업 안에서 스
   await page.getByRole('button', { name: '검색', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '검색', exact: true });
   const results = dialog.getByRole('list', { name: '검색 결과', exact: true });
+  const scroller = dialog.locator('.search-dialog-body');
   await expect(dialog.getByRole('listitem')).toHaveCount(100);
-  expect(await results.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
-  await results.evaluate(element => { element.scrollTop = element.scrollHeight; });
-  await expect.poll(() => results.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  await expect(results).toHaveCSS('overflow-y', 'visible');
+  expect(await scroller.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+  const inputBounds = (await dialog.getByRole('searchbox').boundingBox())!;
+  await scroller.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect.poll(() => scroller.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  expect((await dialog.getByRole('searchbox').boundingBox())!.y).toBeCloseTo(inputBounds.y, 0);
+  expect((await dialog.locator('.search-summary').boundingBox())!.y).toBeLessThan(inputBounds.y);
   await dialog.getByRole('button', { name: /^카테고리별/ }).click();
   await dialog.getByRole('button', { name: /^태그별/ }).click();
   await dialog.getByRole('region', { name: '카테고리 필터' }).getByRole('button', { name: '식비 펼치기', exact: true }).click();
+  await expect(dialog.locator('.search-sidebar .filter-scroll').first()).toHaveCSS('overflow-y', 'visible');
+  const categoryBounds = (await dialog.getByRole('region', { name: '카테고리 필터' }).boundingBox())!;
+  const resultsBounds = (await results.boundingBox())!;
+  expect(categoryBounds.y + categoryBounds.height).toBeLessThan(resultsBounds.y);
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const bounds = (await dialog.boundingBox())!;
@@ -187,7 +198,8 @@ test('합계와 결과 블록은 좁게 가운데 배치하고 금액·메모 �
   await page.goto('/'); await upload(page);
   await page.getByRole('button', { name: '검색', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '검색', exact: true });
-  expect((await dialog.boundingBox())!.width).toBeCloseTo(952, 0);
+  expect((await dialog.boundingBox())!.width).toBeCloseTo(1256, 0);
+  expect((await dialog.locator('.search-main').boundingBox())!.width).toBeCloseTo(950, 0);
   expect((await dialog.boundingBox())!.height).toBeCloseTo(738, 0);
   const totals = dialog.locator('.search-totals');
   const amounts = dialog.locator('.search-totals strong');
@@ -265,6 +277,33 @@ test('모바일의 메모 팝업은 화면 안에 표시하고 결과 스크롤 
   expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
   expect(bounds.y).toBeGreaterThanOrEqual(0); expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
   expect(await popup.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
-  await dialog.getByRole('list', { name: '검색 결과', exact: true }).evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await dialog.locator('.search-dialog-body').evaluate(element => { element.scrollTop = element.scrollHeight; });
   await expect(popup).toHaveCount(0); await expect(dialog).toBeVisible();
+});
+
+test('데스크톱은 기존 결과 너비를 유지하고 오른쪽 필터를 펼쳐도 결과 영역이 변하지 않는다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  await upload(page, { moneyTrackTable: Array.from({ length: 80 }, (_, index) => ({
+    id: index, part: 'E', category: `분류${index}/하위`, amount: 1000, memo: '검색 내역', tags: [`태그${index}`], dateKey: '2026-07-07',
+  })) });
+  await page.getByRole('button', { name: '검색', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '검색', exact: true });
+  const main = (await dialog.locator('.search-main').boundingBox())!;
+  const sidebar = (await dialog.getByRole('complementary', { name: '검색 필터' }).boundingBox())!;
+  expect(main.width).toBeCloseTo(950, 0);
+  expect(sidebar.width).toBeCloseTo(304, 0);
+  expect(sidebar.x).toBeCloseTo(main.x + main.width, 0);
+  const results = dialog.getByRole('list', { name: '검색 결과', exact: true });
+  const before = (await results.boundingBox())!;
+  for (const scroll of await dialog.locator('.search-sidebar .filter-scroll').all()) {
+    expect(await scroll.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+    await scroll.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  }
+  await dialog.getByRole('button', { name: '카테고리별', exact: true }).click();
+  await dialog.getByRole('button', { name: '태그별', exact: true }).click();
+  expect(await results.boundingBox()).toEqual(before);
+  await dialog.getByRole('button', { name: '카테고리별', exact: true }).click();
+  await dialog.getByRole('button', { name: '태그별', exact: true }).click();
+  expect(await results.boundingBox()).toEqual(before);
 });

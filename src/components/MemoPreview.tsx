@@ -17,7 +17,12 @@ function MemoPopup({ memo, id, anchor, onClose }: PopupProps) {
     function position() {
       const origin = anchor.getBoundingClientRect();
       const list = anchor.closest('.search-results')!.getBoundingClientRect();
-      if (origin.bottom <= list.top || origin.top >= list.bottom) {
+      const body = anchor.closest('.search-dialog-body')!;
+      const viewport = body.getBoundingClientRect();
+      const controls = body.querySelector('.search-controls')!.getBoundingClientRect();
+      const visibleTop = Math.max(list.top, viewport.top, controls.bottom);
+      const visibleBottom = Math.min(list.bottom, viewport.bottom);
+      if (origin.bottom <= visibleTop || origin.top >= visibleBottom) {
         element.hidePopover();
         return;
       }
