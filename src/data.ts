@@ -36,10 +36,10 @@ export function parseBackup(text: string): Backup {
   const dates = transactions.map(t => t.dateKey).sort();
   return { raw, transactions, latestMonth: dates.at(-1)!.slice(0,7), firstMonth: dates[0].slice(0,7) };
 }
-// Choices come from the complete history of the active type, independently of
-// the visible period and current selections. Unused metadata remains in raw.
-export function getFilterOptions(transactions: Transaction[], part: TransactionPart): { categories: string[]; tags: string[] } {
-  const matching = transactions.filter(t => t.part === part);
+// Choices come from the complete history of the active type, or all types for
+// search, independently of the visible period and selections. Metadata stays in raw.
+export function getFilterOptions(transactions: Transaction[], part: TransactionPart | null): { categories: string[]; tags: string[] } {
+  const matching = part === null ? transactions : transactions.filter(t => t.part === part);
   const categories = new Set<string>();
   matching.map(t => t.category).filter(Boolean).forEach(category => {
     const parts = category.split('/');

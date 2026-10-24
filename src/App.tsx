@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { BarChart3, CalendarDays, RotateCcw } from 'lucide-react';
+import { BarChart3, CalendarDays, RotateCcw, Search } from 'lucide-react';
 import {
   aggregateDaily, aggregateMonthly, aggregateMonthlyByPart, filterTransactions, getFilterOptions,
   monthRange, parseBackup, TRANSACTION_COLORS, TRANSACTION_PARTS, won, type Backup, type TransactionPart,
@@ -8,6 +8,7 @@ import FileUpload from './components/FileUpload';
 import FilterPanel from './components/FilterPanel';
 import SpendingChart from './components/SpendingChart';
 import DailyDetails from './components/DailyDetails';
+import SearchDialog from './components/SearchDialog';
 
 export default function App() {
   const [backup, setBackup] = useState<Backup | null>(null);
@@ -21,6 +22,7 @@ export default function App() {
   const [categories, setCategories] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [datasetVersion, setDatasetVersion] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
   const uploadVersion = useRef(0);
   const partLabel = TRANSACTION_PARTS.find(item => item.value === part)!.label;
 
@@ -70,6 +72,7 @@ export default function App() {
       setBackup(data);
       setFileName(file.name);
       setDatasetVersion(version);
+      setSearchOpen(false);
       setPart('E');
       setComparisonParts(null);
       resetFilters();
@@ -96,13 +99,16 @@ export default function App() {
       {error && <div className="error" role="alert">{error}{backup && ' 기존 분석 데이터는 유지됩니다.'}</div>}
       <div className="section-heading">
         <h2>거래 대시보드</h2>
-        <div className="part-selector" role="group" aria-label="거래 유형">
-          {TRANSACTION_PARTS.map(item => <button
-            key={item.value}
-            aria-pressed={part === item.value}
-            className={part === item.value ? 'active' : ''}
-            onClick={() => selectPart(item.value)}
-          >{item.label}</button>)}
+        <div className="dashboard-actions">
+          <button className="search-trigger" disabled={!backup} aria-haspopup="dialog" onClick={() => setSearchOpen(true)}><Search className="memo-search-icon" size={17} />검색</button>
+          <div className="part-selector" role="group" aria-label="거래 유형">
+            {TRANSACTION_PARTS.map(item => <button
+              key={item.value}
+              aria-pressed={part === item.value}
+              className={part === item.value ? 'active' : ''}
+              onClick={() => selectPart(item.value)}
+            >{item.label}</button>)}
+          </div>
         </div>
       </div>
       <div className="dashboard">
@@ -163,5 +169,6 @@ export default function App() {
         </aside>
       </div>
     </main>
+    {backup && searchOpen && <SearchDialog key={datasetVersion} transactions={backup.transactions} onClose={() => setSearchOpen(false)} />}
   </div>;
 }
