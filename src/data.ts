@@ -38,16 +38,17 @@ export function parseBackup(text: string): Backup {
 }
 // Choices come from the complete history of the active type, or all types for
 // search, independently of the visible period and selections. Metadata stays in raw.
-export function getFilterOptions(transactions: Transaction[], part: TransactionPart | null): { categories: string[]; tags: string[] } {
+export function getFilterOptions(transactions: Transaction[], part: TransactionPart | null): { categories: string[]; recordedCategories: string[]; tags: string[] } {
   const matching = part === null ? transactions : transactions.filter(t => t.part === part);
   const categories = new Set<string>();
-  matching.map(t => t.category).filter(Boolean).forEach(category => {
+  const recordedCategories = new Set(matching.map(t => t.category).filter(Boolean));
+  recordedCategories.forEach(category => {
     const parts = category.split('/');
     parts.forEach((_, i) => categories.add(parts.slice(0,i+1).join('/')));
   });
   const tags = new Set(matching.flatMap(t => t.tags).filter(Boolean));
   const sort = (values: Set<string>) => [...values].sort((a,b) => a.localeCompare(b,'ko'));
-  return { categories: sort(categories), tags: sort(tags) };
+  return { categories: sort(categories), recordedCategories: sort(recordedCategories), tags: sort(tags) };
 }
 export function filterTransactions(transactions: Transaction[], part: TransactionPart | null, categories: string[] = [], tags: string[] = []): Transaction[] {
   return transactions.filter(t => (part === null || t.part === part) && (!categories.length || categories.some(c => t.category === c || t.category.startsWith(`${c}/`))) && (!tags.length || tags.some(tag => t.tags.includes(tag))));

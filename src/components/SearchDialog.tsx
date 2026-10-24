@@ -101,7 +101,7 @@ export default function SearchDialog({ transactions, onClose }: Props) {
       </div>
       <div className="search-filter-panels">
         <div id={`${id}-categories`} hidden={!showCategories}>
-          <FilterPanel kind="category" options={options.categories} selected={categories} onChange={setCategories} />
+          <FilterPanel kind="category" options={options.categories} recordedCategories={options.recordedCategories} selected={categories} onChange={setCategories} />
         </div>
         <div id={`${id}-tags`} hidden={!showTags}>
           <FilterPanel kind="tag" options={options.tags} selected={tags} onChange={setTags} />

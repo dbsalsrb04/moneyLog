@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { BarChart3, CalendarDays, RotateCcw, Search } from 'lucide-react';
+import { BarChart3, CalendarDays, RotateCcw, Search, Settings } from 'lucide-react';
 import {
   aggregateDaily, aggregateMonthly, aggregateMonthlyByPart, filterTransactions, getFilterOptions,
   monthRange, parseBackup, TRANSACTION_COLORS, TRANSACTION_PARTS, won, type Backup, type TransactionPart,
@@ -9,6 +9,7 @@ import FilterPanel from './components/FilterPanel';
 import SpendingChart from './components/SpendingChart';
 import DailyDetails from './components/DailyDetails';
 import SearchDialog from './components/SearchDialog';
+import SettingsDialog from './components/SettingsDialog';
 
 export default function App() {
   const [backup, setBackup] = useState<Backup | null>(null);
@@ -23,6 +24,7 @@ export default function App() {
   const [tags, setTags] = useState<string[]>([]);
   const [datasetVersion, setDatasetVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const uploadVersion = useRef(0);
   const partLabel = TRANSACTION_PARTS.find(item => item.value === part)!.label;
 
@@ -88,6 +90,7 @@ export default function App() {
   return <div className="app-shell">
     <header className="site-header">
       <a className="brand" href="./"><span className="brand-mark"><BarChart3 size={22} /></span>money<span>Log</span><span className="brand-dot" /></a>
+      <button className="settings-trigger" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}><Settings size={17} />설정</button>
     </header>
     <main>
       <FileUpload
@@ -163,12 +166,13 @@ export default function App() {
         </> : <section className="card empty-state"><p>JSON 파일을 선택하면 분석 결과가 표시됩니다.</p></section>}</div>
         <aside>
           <div className="filter-toolbar"><span>필터 설정</span><button disabled={!backup || (!categories.length && !tags.length)} onClick={resetFilters}><RotateCcw size={12} />초기화</button></div>
-          <FilterPanel key={`category-${part}-${datasetVersion}`} kind="category" options={options.categories} selected={categories} onChange={setCategories} disabled={!backup} />
+          <FilterPanel key={`category-${part}-${datasetVersion}`} kind="category" options={options.categories} recordedCategories={options.recordedCategories} selected={categories} onChange={setCategories} disabled={!backup} />
           <FilterPanel kind="tag" options={options.tags} selected={tags} onChange={setTags} disabled={!backup} />
           <div className="filter-info">{backup && <p className="active-filters">카테고리: {categories.join(', ') || '전체'}<br />태그: {tags.join(', ') || '전체'}</p>}</div>
         </aside>
       </div>
     </main>
     {backup && searchOpen && <SearchDialog key={datasetVersion} transactions={backup.transactions} onClose={() => setSearchOpen(false)} />}
+    {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
   </div>;
 }

@@ -7,6 +7,7 @@ describe('백업 파싱과 보존',()=>{
  it('현재 유형에서 사용된 항목과 상위 경로만 표시하며 미사용 metadata는 보존한다',()=>{
   const b=parse(), options=getFilterOptions(b.transactions,'E');
   expect(options.categories).toEqual(['교통비','교통비/지쿠','식비','식비/편의점']);
+  expect(options.recordedCategories).toEqual(['교통비/지쿠','식비','식비/편의점']);
   expect(new Set(options.tags)).toEqual(new Set(['간식','식비','PC방에서','교통비']));
   expect(b.raw.categoryInfoTable).toEqual([{categoryName:'식비/외식',id:8,order:65},{categoryName:'■식비'}]);
   expect(b.raw.tagInfoTable).toEqual([{tagName:'여행',id:24,order:13}]);
@@ -15,9 +16,9 @@ describe('백업 파싱과 보존',()=>{
   const history=[...rows,t(7,'R','수입/이자',['수입전용'],99,'2024-01-01'),t(8,'E','과거/분류',['옛태그'],100,'2020-01-01')];
   expect(getFilterOptions(history,'E').tags).toContain('옛태그');
   expect(getFilterOptions(history,'E').tags).not.toContain('수입전용');
-  expect(getFilterOptions(history,'R')).toEqual({categories:['수입','수입/월급','수입/이자'],tags:['수입전용']});
-  expect(getFilterOptions(history,'D')).toEqual({categories:['저축'],tags:[]});
-  expect(getFilterOptions([], 'O')).toEqual({categories:[],tags:[]});
+  expect(getFilterOptions(history,'R')).toEqual({categories:['수입','수입/월급','수입/이자'],recordedCategories:['수입/월급','수입/이자'],tags:['수입전용']});
+  expect(getFilterOptions(history,'D')).toEqual({categories:['저축'],recordedCategories:['저축'],tags:[]});
+  expect(getFilterOptions([], 'O')).toEqual({categories:[],recordedCategories:[],tags:[]});
  });
  it.each([['E',[1,2,3]],['R',[4]],['D',[5]],['O',[6]]] as const)('%s 유형만 집계한다',(part,ids)=>{
   const filtered=filterTransactions(rows,part);expect(filtered.map(t=>t.id)).toEqual([...ids]);
