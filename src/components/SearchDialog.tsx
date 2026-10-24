@@ -4,6 +4,7 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { getFilterOptions, TRANSACTION_PARTS, won, type Transaction } from '../data';
 import { formatSearchDate, getSearchTotals, searchTransactions } from '../search';
 import FilterPanel from './FilterPanel';
+import MemoPreview from './MemoPreview';
 
 type Props = { transactions: Transaction[]; onClose: () => void };
 
@@ -16,6 +17,7 @@ export default function SearchDialog({ transactions, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const resultsList = useRef<HTMLDivElement>(null);
+  const backdropPointerDown = useRef(false);
   const id = useId();
   const options = useMemo(() => getFilterOptions(transactions, null), [transactions]);
   const results = useMemo(() => searchTransactions(transactions, query, categories, tags), [transactions, query, categories, tags]);
@@ -37,6 +39,7 @@ export default function SearchDialog({ transactions, onClose }: Props) {
 
   useEffect(() => {
     resultsList.current?.scrollTo({ top: 0 });
+    dialog.current?.querySelectorAll<HTMLElement>('.memo-popover:popover-open').forEach(element => element.hidePopover());
   }, [query, categories, tags]);
 
   return createPortal(<dialog
@@ -45,7 +48,21 @@ export default function SearchDialog({ transactions, onClose }: Props) {
     aria-labelledby={`${id}-title`}
     aria-modal="true"
     onCancel={event => { event.preventDefault(); onClose(); }}
+    onPointerDownCapture={event => {
+      const bounds = event.currentTarget.getBoundingClientRect();
+      backdropPointerDown.current = event.target === event.currentTarget && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom);
+    }}
+    onPointerCancel={() => { backdropPointerDown.current = false; }}
     onKeyDown={event => {
+      if (event.key === 'Escape') {
+        const memo = event.currentTarget.querySelector<HTMLElement>('.memo-popover:popover-open');
+        if (memo) {
+          event.preventDefault();
+          event.stopPropagation();
+          memo.hidePopover();
+        }
+        return;
+      }
       if (event.key !== 'Tab') return;
       const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), [tabindex="0"]')]
         .filter(element => element.getClientRects().length > 0);
@@ -57,7 +74,9 @@ export default function SearchDialog({ transactions, onClose }: Props) {
       }
     }}
     onClick={event => {
-      if (event.target !== event.currentTarget) return;
+      const startedOnBackdrop = backdropPointerDown.current;
+      backdropPointerDown.current = false;
+      if (!startedOnBackdrop || event.target !== event.currentTarget) return;
       const bounds = event.currentTarget.getBoundingClientRect();
       if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) onClose();
     }}
@@ -99,7 +118,7 @@ export default function SearchDialog({ transactions, onClose }: Props) {
       {results.length ? results.map((transaction, index) => <dl className="search-result" role="listitem" key={`${transaction.id}-${index}`}>
         <div><dt className="sr-only">날짜</dt><dd><time dateTime={transaction.dateKey}>{formatSearchDate(transaction.dateKey)}</time></dd></div>
         <div className="search-result-amount"><dt className="sr-only">금액</dt><dd className={`calendar-part-${transaction.part}`} aria-label={`${TRANSACTION_PARTS.find(part => part.value === transaction.part)!.label} ${won(transaction.amount)}`}>{won(transaction.amount)}</dd></div>
-        <div><dt className="sr-only">메모</dt><dd className="search-result-memo">{transaction.memo || '—'}</dd></div>
+        <div><dt className="sr-only">메모</dt><dd className="search-result-memo"><MemoPreview memo={transaction.memo} /></dd></div>
         <div><dt className="sr-only">카테고리</dt><dd>{transaction.category || '—'}</dd></div>
         <div><dt className="sr-only">태그</dt><dd className="detail-tags">{transaction.tags.length ? transaction.tags.map((tag, tagIndex) => <span className="detail-tag" key={`${tag}-${tagIndex}`}>{tag}</span>) : '—'}</dd></div>
       </dl>) : <p className="search-empty">검색 결과가 없습니다.</p>}

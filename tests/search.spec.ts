@@ -39,7 +39,10 @@ test('검색 버튼 위치, 실시간 메모 검색과 유형별 합계·색상�
   const dialog = page.getByRole('dialog', { name: '검색', exact: true });
   const input = dialog.getByRole('searchbox', { name: '메모 검색' });
   await expect(input).toBeFocused();
-  expect((await dialog.boundingBox())!.width).toBeGreaterThan((await page.locator('.dashboard').boundingBox())!.width);
+  const viewport = page.viewportSize()!;
+  const dialogBounds = (await dialog.boundingBox())!;
+  expect(dialogBounds.width).toBeCloseTo(Math.min(1360, viewport.width - 48) * .7, 0);
+  expect(dialogBounds.height).toBeCloseTo(Math.min(820, viewport.height - 48) * .7, 0);
   await expect(dialog.getByRole('listitem')).toHaveCount(9);
   await input.fill('라면');
   await expect(dialog.getByRole('listitem')).toHaveCount(6);
@@ -154,4 +157,114 @@ test('모바일에서 긴 검색 결과와 많은 항목은 팝업 안에서 스
   await dialog.getByRole('searchbox').fill('유일한메모');
   await expect(dialog.getByRole('listitem')).toHaveCount(1);
   await expect.poll(() => results.evaluate(element => element.scrollTop)).toBe(0);
+});
+
+test('안에서 시작한 선택·드래그는 바깥에서 끝내도 검색 팝업을 닫지 않는다', async ({ page }) => {
+  await page.goto('/'); await upload(page);
+  await page.getByRole('button', { name: '검색', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '검색', exact: true });
+  const input = dialog.getByRole('searchbox');
+  await input.fill('라면');
+  const inputBounds = (await input.boundingBox())!;
+  await page.mouse.move(inputBounds.x + 20, inputBounds.y + inputBounds.height / 2);
+  await page.mouse.down(); await page.mouse.move(1, 1, { steps: 10 }); await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await expect(input).toHaveValue('라면');
+  const memo = dialog.locator('.memo-preview').first();
+  const memoBounds = (await memo.boundingBox())!;
+  await page.mouse.move(memoBounds.x + 8, memoBounds.y + memoBounds.height / 2);
+  await page.mouse.down(); await page.mouse.move(1, 1, { steps: 10 }); await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await page.mouse.move(1, 1); await page.mouse.down();
+  await page.mouse.move(inputBounds.x + 30, inputBounds.y + inputBounds.height / 2, { steps: 10 }); await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await page.mouse.click(1, 1);
+  await expect(dialog).toHaveCount(0);
+});
+
+test('합계와 결과 블록은 좁게 가운데 배치하고 금액·메모 너비를 통일한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/'); await upload(page);
+  await page.getByRole('button', { name: '검색', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '검색', exact: true });
+  expect((await dialog.boundingBox())!.width).toBeCloseTo(952, 0);
+  expect((await dialog.boundingBox())!.height).toBeCloseTo(574, 0);
+  const totals = dialog.locator('.search-totals');
+  const amounts = dialog.locator('.search-totals strong');
+  const width = (await amounts.first().boundingBox())!.width;
+  expect(width).toBeLessThan(110);
+  for (const amount of await amounts.all()) expect((await amount.boundingBox())!.width).toBeCloseTo(width, 0);
+  for (const amount of await dialog.locator('.search-result-amount dd').all()) expect((await amount.boundingBox())!.width).toBeCloseTo(width, 0);
+  expect(await totals.evaluate(element => {
+    const children = [...element.children].map(child => child.getBoundingClientRect());
+    const bounds = element.getBoundingClientRect();
+    return Math.abs((children[0].left + children.at(-1)!.right) / 2 - (bounds.left + bounds.right) / 2) < 1;
+  })).toBe(true);
+  const listBounds = (await dialog.getByRole('list', { name: '검색 결과', exact: true }).boundingBox())!;
+  const rowBounds = (await dialog.locator('.search-result').first().boundingBox())!;
+  expect(rowBounds.width).toBeLessThan(listBounds.width - 80);
+  expect(rowBounds.x + rowBounds.width / 2).toBeCloseTo(listBounds.x + listBounds.width / 2, 0);
+  const memoWidths = await dialog.locator('.memo-preview').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().width));
+  expect(memoWidths.every(value => Math.abs(value - memoWidths[0]) < 1)).toBe(true);
+});
+
+test('긴 메모는 말줄임·음영·오른쪽 위 전체 내용 팝업과 독립적인 닫기를 지원한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/');
+  const memo = '아주 긴 메모 '.repeat(15) + '\n두 번째 줄\n마지막 내용';
+  await upload(page, { moneyTrackTable: [
+    { ...backup.moneyTrackTable[0], memo, dateKey: '2026-08-04' },
+    { ...backup.moneyTrackTable[1], memo: '짧은 메모', dateKey: '2026-08-03' },
+  ] });
+  await page.getByRole('button', { name: '검색', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '검색', exact: true });
+  const trigger = dialog.locator('.memo-preview').first();
+  await expect(trigger).toHaveCSS('text-overflow', 'ellipsis');
+  expect(await trigger.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(true);
+  const background = await trigger.evaluate(element => getComputedStyle(element).backgroundColor);
+  await trigger.hover();
+  await expect(trigger).not.toHaveCSS('background-color', background);
+  await trigger.click();
+  const popup = page.getByRole('dialog', { name: '메모 전체 내용', exact: true });
+  await expect(popup.locator('.memo-full-text')).toHaveText(memo);
+  const triggerBounds = (await trigger.boundingBox())!, popupBounds = (await popup.boundingBox())!;
+  expect(popupBounds.x).toBeGreaterThan(triggerBounds.x + triggerBounds.width);
+  expect(popupBounds.y + popupBounds.height).toBeLessThan(triggerBounds.y);
+  const text = (await popup.locator('.memo-full-text').boundingBox())!;
+  await page.mouse.move(text.x + 8, text.y + 8); await page.mouse.down();
+  await page.mouse.move(1, 1, { steps: 10 }); await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await page.evaluate(() => getSelection()?.removeAllRanges());
+  if (!await popup.count()) await trigger.click();
+  await page.keyboard.press('Escape');
+  await expect(popup).toHaveCount(0); await expect(dialog).toBeVisible();
+  await trigger.focus(); await page.keyboard.press('Enter');
+  await expect(popup).toBeVisible();
+  await popup.getByRole('button', { name: '메모 닫기', exact: true }).click();
+  await expect(popup).toHaveCount(0); await expect(trigger).toBeFocused();
+  await trigger.click();
+  await dialog.locator('.memo-preview').nth(1).click();
+  await expect(popup).toHaveCount(1);
+  await expect(popup.locator('.memo-full-text')).toHaveText('짧은 메모');
+  await dialog.getByRole('searchbox').fill('없는 검색어');
+  await expect(popup).toHaveCount(0); await expect(dialog.getByRole('listitem')).toHaveCount(0);
+});
+
+test('모바일의 메모 팝업은 화면 안에 표시하고 결과 스크롤 시 닫는다', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await upload(page, { moneyTrackTable: Array.from({ length: 50 }, (_, index) => ({
+    ...backup.moneyTrackTable[0], id: index, memo: '긴 메모 '.repeat(30) + '\n마지막 줄',
+  })) });
+  await page.getByRole('button', { name: '검색', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '검색', exact: true });
+  await dialog.locator('.memo-preview').first().click();
+  const popup = page.getByRole('dialog', { name: '메모 전체 내용', exact: true });
+  await expect(popup).toBeVisible();
+  const bounds = (await popup.boundingBox())!;
+  expect(bounds.x).toBeGreaterThanOrEqual(0); expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  expect(bounds.y).toBeGreaterThanOrEqual(0); expect(bounds.y + bounds.height).toBeLessThanOrEqual(844);
+  expect(await popup.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await dialog.getByRole('list', { name: '검색 결과', exact: true }).evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect(popup).toHaveCount(0); await expect(dialog).toBeVisible();
 });
