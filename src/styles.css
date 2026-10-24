@@ -81,7 +81,7 @@
 .search-trigger{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border:1px solid #d9dfe8;border-radius:6px;background:#fff;color:#59616f;font-size:12px;white-space:nowrap}
 .search-trigger:hover:not(:disabled){background:#edf0f5;border-color:#b9c2cf}
 .memo-search-icon{transform:scaleX(-1);flex-shrink:0}
-.search-dialog{width:min(952px,calc((100% - 48px)*.7));max-width:none;height:min(574px,calc((100dvh - 48px)*.7));max-height:calc(100dvh - 24px);padding:0;border:1px solid #dce3ed;border-radius:12px;background:#fff;color:#253047;box-shadow:0 18px 70px #14203940;overflow:hidden}
+.search-dialog{width:min(952px,calc((100% - 48px)*.7));max-width:none;height:min(738px,calc((100dvh - 48px)*.9));max-height:calc(100dvh - 24px);padding:0;border:1px solid #dce3ed;border-radius:12px;background:#fff;color:#253047;box-shadow:0 18px 70px #14203940;overflow:hidden}
 .search-dialog[open]{display:flex;flex-direction:column}
 .search-dialog::backdrop{background:#17213480}
 .search-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 22px 12px;flex-shrink:0}
@@ -105,22 +105,24 @@
 .search-filter-panels .filter-heading h2{font-size:13px}
 .search-filter-panels .filter-scroll{max-height:180px}
 .search-summary{padding:12px 22px 14px;border-bottom:1px solid #e6ebf2;flex-shrink:0}
-.search-summary-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.search-summary-heading{position:relative;display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:10px}
 .search-summary-heading h3{margin:0;font-size:13px;font-weight:600}
-.search-summary-heading>span{font-size:12px;color:#7e899c}
+.search-summary-heading>span{position:absolute;right:0;font-size:12px;color:#7e899c}
 .search-totals{display:grid;grid-template-columns:repeat(4,max-content);justify-content:center;margin-inline:auto;max-width:100%}
-.search-totals>div{display:flex;align-items:baseline;justify-content:center;gap:8px;min-width:0;padding:0 10px;border-left:1px solid #e0e5ed}
+.search-totals>div{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;padding:0 10px;border-left:1px solid #e0e5ed}
 .search-totals>div:first-child{border-left:0}
 .search-totals span{font-size:12px}
 .search-totals strong,.search-result-amount dd{width:calc(11ch + 1em);max-width:100%;font-size:13px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.search-totals strong{text-align:center}
 .search-results{flex:1;min-height:0;padding:12px 22px 18px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;background:#f4f6fa}
 .search-results:focus-visible{outline:2px solid #8198e9;outline-offset:-3px}
-.search-result{display:grid;grid-template-columns:132px max-content minmax(0,180px) minmax(0,1fr) 110px;align-items:center;gap:0;width:min(100%,740px);margin:0 auto 4px;padding:8px 4px;border:1px solid #e0e6ef;border-radius:5px;background:#fff;font-size:12px;line-height:1.6}
+.search-result{display:grid;grid-template-columns:max-content max-content minmax(0,180px) 110px minmax(0,1fr);align-items:center;gap:0;width:min(100%,740px);margin:0 auto 4px;padding:8px 4px;border:1px solid #e0e6ef;border-radius:5px;background:#fff;font-size:12px;line-height:1.6}
 .search-result>div{min-width:0;padding:0 8px;border-left:1px solid #e8ecf3;overflow-wrap:anywhere}
 .search-result>div:first-child{border-left:0}
 .search-result dd{margin:0}
 .search-result time{white-space:nowrap;font-variant-numeric:tabular-nums}
 .search-result-amount{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.search-result-amount dd{margin-left:auto}
 .memo-preview{display:block;width:100%;min-width:0;padding:4px;border:0;border-radius:3px;background:transparent;color:inherit;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:inherit;user-select:text}
 .memo-preview:hover:not(:disabled),.memo-preview[aria-expanded=true]{background:#e6ebf3;box-shadow:0 1px 4px #25304718}
 .memo-preview:disabled{opacity:1}
@@ -131,6 +133,6 @@
 .memo-full-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;user-select:text}
 .search-result .detail-tag{overflow-wrap:anywhere}
 .search-empty{margin:34px 0;text-align:center;font-size:13px;color:#8390a5}
-@media(max-width:1000px){.search-result{grid-template-columns:132px max-content minmax(0,1fr);row-gap:4px}.search-result>div:nth-child(4){grid-column:1/3;border-left:0}.search-totals>div{flex-direction:column;align-items:center;gap:2px}}
-@media(max-width:760px){.search-dialog{width:calc(100% - 16px);height:min(574px,calc(100dvh - 24px));border-radius:8px}}
-@media(max-width:600px){.dashboard-actions{gap:8px}.search-dialog-header{padding:12px 14px 10px}.search-controls{padding:0 14px}.search-summary{padding:10px 14px 12px}.search-results{padding:8px 10px 12px}.search-result{grid-template-columns:minmax(0,1fr) max-content;row-gap:4px;padding:8px 0}.search-result>div{padding:0 10px}.search-result>div:nth-child(n+3){grid-column:1/-1;border-left:0}.search-filter-panels{flex-direction:column;gap:0}.search-totals{grid-template-columns:repeat(4,minmax(0,1fr));width:100%}.search-totals>div{padding:0 5px}.search-totals strong{width:100%;font-size:11px;text-align:center}}
+@media(max-width:1000px){.search-result{grid-template-columns:max-content max-content minmax(0,1fr);row-gap:4px}.search-result>div:nth-child(4){border-left:0}.search-result>div:nth-child(5){grid-column:2/4}}
+@media(max-width:760px){.search-dialog{width:calc(100% - 16px);height:min(738px,calc((100dvh - 24px)*.9));border-radius:8px}}
+@media(max-width:600px){.dashboard-actions{gap:8px}.search-dialog-header{padding:12px 14px 10px}.search-controls{padding:0 14px}.search-summary{padding:10px 14px 12px}.search-results{padding:8px 10px 12px}.search-result{grid-template-columns:max-content minmax(0,1fr);row-gap:4px;padding:8px 0}.search-result>div{padding:0 10px}.search-result>div:nth-child(n+3){grid-column:1/-1;border-left:0}.search-filter-panels{flex-direction:column;gap:0}.search-totals{grid-template-columns:repeat(4,minmax(0,1fr));width:100%}.search-totals>div{padding:0 5px}.search-totals strong{width:100%;font-size:11px;text-align:center}}

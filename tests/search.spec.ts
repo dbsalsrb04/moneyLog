@@ -42,7 +42,7 @@ test('검색 버튼 위치, 실시간 메모 검색과 유형별 합계·색상�
   const viewport = page.viewportSize()!;
   const dialogBounds = (await dialog.boundingBox())!;
   expect(dialogBounds.width).toBeCloseTo(Math.min(1360, viewport.width - 48) * .7, 0);
-  expect(dialogBounds.height).toBeCloseTo(Math.min(820, viewport.height - 48) * .7, 0);
+  expect(dialogBounds.height).toBeCloseTo(Math.min(820, viewport.height - 48) * .9, 0);
   await expect(dialog.getByRole('listitem')).toHaveCount(9);
   await input.fill('라면');
   await expect(dialog.getByRole('listitem')).toHaveCount(6);
@@ -188,7 +188,7 @@ test('합계와 결과 블록은 좁게 가운데 배치하고 금액·메모 �
   await page.getByRole('button', { name: '검색', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: '검색', exact: true });
   expect((await dialog.boundingBox())!.width).toBeCloseTo(952, 0);
-  expect((await dialog.boundingBox())!.height).toBeCloseTo(574, 0);
+  expect((await dialog.boundingBox())!.height).toBeCloseTo(738, 0);
   const totals = dialog.locator('.search-totals');
   const amounts = dialog.locator('.search-totals strong');
   const width = (await amounts.first().boundingBox())!.width;
