@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartPie } from 'lucide-react';
-import { Bar, BarChart, CartesianGrid, Cell, LabelList, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { aggregateCategoryShares, formatPercentage, groupCategoryLegend, type CategoryShare } from '../analysis';
 import { useSettings } from '../settings';
 import { won, type Transaction } from '../data';
 import AnalysisMonthPicker from './AnalysisMonthPicker';
 import HelpTip from './HelpTip';
 import OtherCategoriesPopup from './OtherCategoriesPopup';
+import AnalysisPieChart from './AnalysisPieChart';
 
 type Props = { transactions: Transaction[]; month: string; partLabel: string; active: boolean };
 const COLORS = ['#5474e8', '#8495ed', '#57a5b4', '#7cbb95', '#d2ad67', '#ce8f9f', '#9b85c7', '#84adb5', '#b5b87b', '#ab77ad'];
@@ -53,18 +54,10 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
     </div>
     <div className="chart-total" data-testid="analysis-total">{won(total)}<span>{Number(selectedMonth.slice(0, 4))}년 {Number(selectedMonth.slice(5))}월 {partLabel}</span></div>
     {hasNegative && analysisChartType === 'pie' && total > 0 && <p className="analysis-note">음수 금액이 포함되어 막대그래프로 표시합니다.</p>}
-    {total > 0 ? <div className="analysis-visual">
+    {total > 0 ? <div className={`analysis-visual${pie ? ' analysis-visual-pie' : ''}`}>
       <div className="analysis-chart-scroll">
         <div className="chart analysis-chart" role="img" aria-label={`카테고리별 ${partLabel} 비중 ${pie ? '파이차트' : '막대그래프'}`} onMouseLeave={() => highlightCategory(null)}>
-          {active && (pie ? <ResponsiveContainer width="100%" height="100%"><PieChart>
-            <Pie data={chartRows} dataKey="amount" nameKey="category" outerRadius="78%" isAnimationActive={false} onMouseEnter={(_, index) => highlightCategory(chartRows[index]?.key ?? null)} onClick={(_, index, event) => { if (chartRows[index]?.isOther) setOtherPoint({ x: event.clientX, y: event.clientY }); }} labelLine={false} label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-              if (Number(percent) < .035) return null;
-              const radius = Number(innerRadius) + (Number(outerRadius) - Number(innerRadius)) * .65;
-              const angle = -Number(midAngle) * Math.PI / 180;
-              return <text x={Number(cx) + radius * Math.cos(angle)} y={Number(cy) + radius * Math.sin(angle)} fill="#fff" textAnchor="middle" dominantBaseline="central" fontSize={11}>{formatPercentage(Number(percent) * 100)}</text>;
-            }}>{chartRows.map(row => <Cell key={row.key} fill={row.color} data-category-key={row.key} style={{ cursor: row.isOther ? 'pointer' : 'default' }} className="analysis-category-shape" />)}</Pie>
-            <Tooltip content={tooltip} />
-          </PieChart></ResponsiveContainer> : <ResponsiveContainer width="100%" height="100%"><BarChart data={chartRows} layout="vertical" margin={{ top: 10, right: 54, left: 0, bottom: 8 }} accessibilityLayer>
+          {active && (pie ? <AnalysisPieChart rows={chartRows} onHighlight={highlightCategory} onOtherClick={setOtherPoint} tooltip={tooltip} /> : <ResponsiveContainer width="100%" height="100%"><BarChart data={chartRows} layout="vertical" margin={{ top: 10, right: 54, left: 0, bottom: 8 }} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="#e9edf3" />
             <XAxis type="number" domain={[Math.min(0, ...rows.map(row => row.percentage ?? 0)), Math.max(100, ...rows.map(row => row.percentage ?? 0))]} tickFormatter={value => `${value}%`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8490a3' }} />
             <YAxis type="category" dataKey="category" width={112} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#66748b' }} tickFormatter={value => String(value).length > 13 ? `${String(value).slice(0, 12)}…` : String(value)} />
