@@ -247,3 +247,22 @@ test('모바일에서도 그 외 팝업은 화면 안에 표시된다', async ({
   expect(await popup.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
   await expect(popup.locator('tbody tr').first()).toContainText('4%');
 });
+
+test('그 외 팝업의 각 열 너비를 절반으로 줄이고 긴 금액과 카테고리도 보존한다', async ({ page }) => {
+  await page.goto('/');
+  await upload(page, { moneyTrackTable: Array.from({ length: 25 }, (_, index) => ({ ...backup.moneyTrackTable[0], id: index, category: `긴 분류/하위 카테고리${index}`, amount: 999999999 })) });
+  await tab(page, '분석').click();
+  await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();
+  await page.locator('.analysis-table tr[data-other="true"]').click();
+  const popup = page.getByRole('dialog', { name: '그 외 카테고리', exact: true });
+  for (const width of [1440, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const oldTableWidth = Math.min(430, width - 16) - 26;
+    const cells = popup.locator('thead th');
+    for (const [index, ratio] of [0.44, 0.20, 0.36].entries()) {
+      await expect.poll(async () => (await cells.nth(index).boundingBox())!.width).toBeCloseTo(oldTableWidth * ratio / 2, 0);
+    }
+    await expect(popup.locator('tbody tr').first().locator('td').last()).toHaveText('999,999,999원');
+    expect(await popup.evaluate(root => [...root.querySelectorAll('table, th, td')].every(element => element.scrollWidth <= element.clientWidth + 1))).toBe(true);
+  }
+});
