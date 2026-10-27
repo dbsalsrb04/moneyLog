@@ -47,9 +47,7 @@ test('월별·일별·비교·분석 막대를 클릭해도 내부 SVG 그룹에
   await expect(chart.locator('.chart-tooltip')).toContainText('60,000원');
 
   // Keyboard users still get a visible chart focus indicator and arrow-key tooltips.
-  await page.getByRole('switch', { name: '하위 카테고리 기준' }).focus();
-  await page.keyboard.press('Tab');
-  await expect(page.getByRole('button', { name: '카테고리 기준 도움말' })).toBeFocused();
+  await page.getByRole('button', { name: '분석 다음 연도', exact: true }).focus();
   await page.keyboard.press('Tab');
   const surface = chart.locator('.recharts-surface');
   await expect(surface).toBeFocused();

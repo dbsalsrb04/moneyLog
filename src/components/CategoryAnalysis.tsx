@@ -45,13 +45,13 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
     <div className="chart-header analysis-header">
       <div>
         <div className="chart-title"><span className="icon-box"><ChartPie size={18} /></span><h2>카테고리별 {partLabel} 비중</h2></div>
-        <AnalysisMonthPicker selected={selectedMonth} onChange={setSelectedMonth} />
       </div>
       <div className="analysis-controls">
         <div className="analysis-setting"><span>파이차트</span><button className="analysis-switch" role="switch" aria-label="그래프 모양" aria-checked={analysisChartType === 'bar'} onClick={() => setAnalysisChartType(analysisChartType === 'pie' ? 'bar' : 'pie')}><span /></button><span>막대 그래프</span><HelpTip label="그래프 설정 도움말">그래프 모양</HelpTip></div>
         <div className="analysis-setting"><span>카테고리 기준:</span><span>상위</span><button className="analysis-switch" role="switch" aria-label="하위 카테고리 기준" aria-checked={analysisCategoryGrouping === 'full'} onClick={() => setAnalysisCategoryGrouping(analysisCategoryGrouping === 'parent' ? 'full' : 'parent')}><span /></button><span>하위</span><HelpTip label="카테고리 기준 도움말">{'상위 기준 예시: 식비, 쇼핑, 교통비, ...\n하위 기준 예시: 식비/편의점, 식비/카페, ..., 쇼핑/옷, 쇼핑/생활용품, ...'}</HelpTip></div>
       </div>
     </div>
+    <AnalysisMonthPicker selected={selectedMonth} onChange={setSelectedMonth} />
     <div className="chart-total" data-testid="analysis-total">{won(total)}<span>{Number(selectedMonth.slice(0, 4))}년 {Number(selectedMonth.slice(5))}월 {partLabel}</span></div>
     {hasNegative && analysisChartType === 'pie' && total > 0 && <p className="analysis-note">음수 금액이 포함되어 막대그래프로 표시합니다.</p>}
     {total > 0 ? <div className={`analysis-visual${pie ? ' analysis-visual-pie' : ''}`}>

@@ -93,38 +93,40 @@ test('분석 월은 한 달만 선택해 교체하며 탭 간 유지하고 공�
   await page.goto('/'); await upload(page, { moneyTrackTable: [...backup.moneyTrackTable,
     { ...backup.moneyTrackTable[0], id: 7, amount: 700, dateKey: '2025-12-31' },
   ] }); await tab(page, '분석').click();
-  const trigger = page.getByRole('button', { name: '분석 조회 월' });
-  await expect(trigger).toHaveText('조회 월 2026년 10월');
-  await trigger.click();
+  const trigger = page.getByRole('button', { name: '분석 연도 선택', exact: true });
+  await expect(trigger).toHaveText('2026년');
   const picker = page.getByRole('group', { name: '분석 월 선택' });
+  await expect(picker.getByRole('button')).toHaveText(Array.from({ length: 12 }, (_, index) => `${index + 1}월`));
   await expect(picker.getByRole('button', { pressed: true })).toHaveCount(1);
   await expect(picker.getByRole('button', { name: '2026년 10월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await picker.getByRole('button', { name: '2026년 9월 분석', exact: true }).click();
-  await expect(picker).toHaveCount(0);
-  await expect(trigger).toBeFocused();
-  await expect(trigger).toHaveText('조회 월 2026년 9월');
+  await expect(picker).toBeVisible();
+  await expect(trigger).toHaveText('2026년');
   await expect(page.getByTestId('analysis-total')).toContainText('1,000원');
   await expect(page.locator('.analysis-table tbody tr')).toHaveText(['여행1,000원100%']);
-  await trigger.click();
   await expect(picker.getByRole('button', { pressed: true })).toHaveCount(1);
   await expect(picker.getByRole('button', { name: '2026년 10월 분석', exact: true })).toHaveAttribute('aria-pressed', 'false');
-  await picker.getByRole('button', { name: '분석 이전 연도' }).click();
+  await page.getByRole('button', { name: '분석 이전 연도' }).click();
+  await expect(trigger).toHaveText('2025년');
+  await expect(page.getByTestId('analysis-total')).toHaveText('0원2025년 9월 지출');
   await picker.getByRole('button', { name: '2025년 12월 분석', exact: true }).click();
-  await expect(picker).toHaveCount(0);
   await expect(page.getByTestId('analysis-total')).toHaveText('700원2025년 12월 지출');
   await tab(page, '월별').click(); await tab(page, '분석').click();
-  await expect(trigger).toHaveText('조회 월 2025년 12월');
+  await expect(trigger).toHaveText('2025년');
+  await expect(picker.getByRole('button', { name: '2025년 12월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await trigger.click();
-  await picker.getByRole('button', { name: '분석 연도 선택', exact: true }).click();
-  await picker.getByRole('button', { name: '2026년 분석 월 선택', exact: true }).click();
+  const years = page.getByRole('dialog', { name: '분석 연도 선택', exact: true });
+  await years.getByRole('button', { name: '2026년 분석 월 선택', exact: true }).click();
+  await expect(years).toHaveCount(0);
+  await expect(trigger).toBeFocused();
   await picker.getByRole('button', { name: '2026년 10월 분석', exact: true }).click();
   await expect(page.getByTestId('analysis-total')).toHaveText('1,000원2026년 10월 지출');
-  await trigger.click();
   await picker.getByRole('button', { name: '2026년 10월 분석', exact: true }).click();
-  await expect(picker).toHaveCount(0);
+  await expect(picker.getByRole('button', { pressed: true })).toHaveCount(1);
   await expect(page.getByTestId('analysis-total')).toContainText('1,000원');
   await selectDailyMonth(page, '2026-09');
-  await expect(trigger).toHaveText('조회 월 2026년 9월');
+  await expect(trigger).toHaveText('2026년');
+  await expect(picker.getByRole('button', { name: '2026년 9월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('.analysis-table tbody tr')).toHaveText(['여행1,000원100%']);
 });
 
@@ -136,22 +138,68 @@ test('빈 결과·새 파일·저장소 제한과 모바일의 탭·도움말·�
   const tip = (await page.getByRole('tooltip').boundingBox())!;
   expect(tip.x).toBeGreaterThanOrEqual(0); expect(tip.x + tip.width).toBeLessThanOrEqual(390);
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: '분석 조회 월' }).click();
   const picker = page.getByRole('group', { name: '분석 월 선택' });
   await picker.getByRole('button', { name: '2026년 1월 분석', exact: true }).click();
-  await expect(picker).toHaveCount(0);
-  await expect(page.getByRole('button', { name: '분석 조회 월' })).toHaveText('조회 월 2026년 1월');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('button', { name: '2026년 1월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('analysis-total')).toHaveText('0원2026년 1월 지출');
   await expect(page.getByText('선택한 월과 필터에 해당하는 내역이 없습니다.', { exact: true })).toBeVisible();
   await upload(page, { moneyTrackTable: [{ ...backup.moneyTrackTable[0], amount: 400, dateKey: '2024-02-29' }] });
   await expect(page.getByTestId('analysis-total')).toContainText('400원');
-  await expect(page.getByRole('button', { name: '분석 조회 월' })).toContainText('2024년 2월');
+  await expect(page.getByRole('button', { name: '분석 연도 선택', exact: true })).toHaveText('2024년');
+  await expect(picker.getByRole('button', { name: '2024년 2월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('switch', { name: '그래프 모양' }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   for (const name of ['일별', '세부', '월별', '분석']) {
     await tab(page, name).click();
     await expect(page.getByRole('tabpanel')).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+
+test('월 버튼을 항상 표시하며 연도만 선택하는 팝업·2020~2031년 경계·키보드 탐색을 지원한다', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto('/'); await upload(page); await tab(page, '분석').click();
+  const trigger = page.getByRole('button', { name: '분석 연도 선택', exact: true });
+  const picker = page.getByRole('group', { name: '분석 월 선택' });
+  const years = page.getByRole('dialog', { name: '분석 연도 선택', exact: true });
+  const bounds = (await trigger.boundingBox())!;
+  const period = (await page.locator('.analysis-period').boundingBox())!;
+  expect(bounds.x + bounds.width / 2).toBeCloseTo(period.x + period.width / 2, 0);
+  const monthBounds = await picker.getByRole('button').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().top));
+  expect(new Set(monthBounds).size).toBe(1);
+  await trigger.click();
+  await expect(years.getByRole('button')).toHaveText(Array.from({ length: 12 }, (_, index) => String(2020 + index)));
+  await expect(years.getByRole('button', { name: '2026년 분석 월 선택', exact: true })).toBeFocused();
+  await years.getByRole('button', { name: '2020년 분석 월 선택', exact: true }).click();
+  await expect(years).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '분석 이전 연도' })).toBeDisabled();
+  await expect(picker.getByRole('button', { name: '2020년 10월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: '분석 다음 연도' }).click();
+  await expect(trigger).toHaveText('2021년');
+  await trigger.click();
+  await years.getByRole('button', { name: '2031년 분석 월 선택', exact: true }).click();
+  await expect(page.getByRole('button', { name: '분석 다음 연도' })).toBeDisabled();
+  await page.getByRole('button', { name: '분석 이전 연도' }).click();
+  await expect(trigger).toHaveText('2030년');
+  await trigger.focus(); await page.keyboard.press('Enter');
+  await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+  await expect(trigger).toHaveText('2031년'); await expect(trigger).toBeFocused();
+  await trigger.click(); await page.keyboard.press('Escape'); await expect(years).toHaveCount(0);
+  await trigger.click(); await page.mouse.click(0, 0); await expect(years).toHaveCount(0);
+  await picker.getByRole('button', { name: '2031년 10월 분석', exact: true }).focus();
+  await page.keyboard.press('Home'); await page.keyboard.press('Enter');
+  await expect(picker.getByRole('button', { name: '2031년 1월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.keyboard.press('End'); await page.keyboard.press('Enter');
+  await expect(picker.getByRole('button', { name: '2031년 12월 분석', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  for (const width of [390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const button of await picker.getByRole('button').all()) await expect(button).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await trigger.click();
+    const popupBounds = (await years.boundingBox())!;
+    expect(popupBounds.x).toBeGreaterThanOrEqual(0); expect(popupBounds.x + popupBounds.width).toBeLessThanOrEqual(width);
+    await page.keyboard.press('Escape');
   }
 });
 
