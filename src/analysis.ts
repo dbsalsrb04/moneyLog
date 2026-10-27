@@ -30,8 +30,3 @@ export function groupCategoryLegend(rows: CategoryShare[]): CategoryBreakdown[] 
   }
   return result;
 }
-
-export function toggleAnalysisMonth(selected: string[], month: string): string[] {
-  if (selected.includes(month)) return selected.length > 1 ? selected.filter(value => value !== month) : selected;
-  return selected.length < 12 ? [...selected, month].sort() : selected;
-}

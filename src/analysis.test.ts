@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateCategoryShares, groupCategoryLegend, toggleAnalysisMonth } from './analysis';
+import { aggregateCategoryShares, groupCategoryLegend } from './analysis';
 import type { Transaction } from './data';
 
 const row = (id: number, category: string, amount: number): Transaction => ({ id, category, amount, part: 'E', memo: '', tags: [], dateKey: '2026-10-01' });
@@ -44,20 +44,5 @@ describe('카테고리 비중 분석', () => {
     expect(groupCategoryLegend(aggregateCategoryShares([], 'full'))).toEqual([]);
     expect(aggregateCategoryShares([row(1, '식비', 0)], 'parent')[0].percentage).toBeNull();
     expect(aggregateCategoryShares([row(1, '식비', -10)], 'parent')[0].percentage).toBeNull();
-  });
-});
-
-describe('분석 월 선택', () => {
-  it('비연속 월을 연도 경계와 관계없이 선택하며 원본을 바꾸지 않는다', () => {
-    const months = ['2026-10'];
-    expect(toggleAnalysisMonth(months, '2025-12')).toEqual(['2025-12', '2026-10']);
-    expect(months).toEqual(['2026-10']);
-    expect(toggleAnalysisMonth(['2025-12', '2026-10'], '2025-12')).toEqual(['2026-10']);
-  });
-  it('최소 1개월·최대 12개월을 유지하고 중복 월은 추가하지 않는다', () => {
-    expect(toggleAnalysisMonth(['2026-10'], '2026-10')).toEqual(['2026-10']);
-    const months = Array.from({ length: 12 }, (_, index) => `2026-${String(index + 1).padStart(2, '0')}`);
-    expect(toggleAnalysisMonth(months, '2025-12')).toEqual(months);
-    expect(toggleAnalysisMonth(months, '2026-12')).toHaveLength(11);
   });
 });

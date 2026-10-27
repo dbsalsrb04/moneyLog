@@ -13,7 +13,7 @@ const COLORS = ['#5474e8', '#8495ed', '#57a5b4', '#7cbb95', '#d2ad67', '#ce8f9f'
 
 export default function CategoryAnalysis({ transactions, month, partLabel, active }: Props) {
   // The parent keys this component by the shared month and uploaded dataset.
-  const [months, setMonths] = useState([month]);
+  const [selectedMonth, setSelectedMonth] = useState(month);
   const root = useRef<HTMLElement>(null);
   // Keep hover styling outside React renders to preserve Recharts SVG click targets.
   function highlightCategory(key: string | null) {
@@ -23,10 +23,7 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
   const [otherPoint, setOtherPoint] = useState<{ x: number; y: number } | null>(null);
   const otherLegend = useRef<HTMLTableRowElement>(null);
   const { analysisChartType, setAnalysisChartType, analysisCategoryGrouping, setAnalysisCategoryGrouping } = useSettings();
-  const allRows = useMemo(() => {
-    const selected = new Set(months);
-    return aggregateCategoryShares(transactions.filter(transaction => selected.has(transaction.dateKey.slice(0, 7))), analysisCategoryGrouping);
-  }, [transactions, months, analysisCategoryGrouping]);
+  const allRows = useMemo(() => aggregateCategoryShares(transactions.filter(transaction => transaction.dateKey.slice(0, 7) === selectedMonth), analysisCategoryGrouping), [transactions, selectedMonth, analysisCategoryGrouping]);
   const rows = useMemo(() => groupCategoryLegend(allRows), [allRows]);
   const otherRows = useMemo(() => {
     const visible = new Set(rows.filter(row => !row.isOther).map(row => row.category));
@@ -47,14 +44,14 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
     <div className="chart-header analysis-header">
       <div>
         <div className="chart-title"><span className="icon-box"><ChartPie size={18} /></span><h2>카테고리별 {partLabel} 비중</h2></div>
-        <AnalysisMonthPicker selected={months} onChange={setMonths} />
+        <AnalysisMonthPicker selected={selectedMonth} onChange={setSelectedMonth} />
       </div>
       <div className="analysis-controls">
         <div className="analysis-setting"><span>파이차트</span><button className="analysis-switch" role="switch" aria-label="그래프 모양" aria-checked={analysisChartType === 'bar'} onClick={() => setAnalysisChartType(analysisChartType === 'pie' ? 'bar' : 'pie')}><span /></button><span>막대 그래프</span><HelpTip label="그래프 설정 도움말">그래프 모양</HelpTip></div>
         <div className="analysis-setting"><span>카테고리 기준:</span><span>상위</span><button className="analysis-switch" role="switch" aria-label="하위 카테고리 기준" aria-checked={analysisCategoryGrouping === 'full'} onClick={() => setAnalysisCategoryGrouping(analysisCategoryGrouping === 'parent' ? 'full' : 'parent')}><span /></button><span>하위</span><HelpTip label="카테고리 기준 도움말">{'상위 기준 예시: 식비, 쇼핑, 교통비, ...\n하위 기준 예시: 식비/편의점, 식비/카페, ..., 쇼핑/옷, 쇼핑/생활용품, ...'}</HelpTip></div>
       </div>
     </div>
-    <div className="chart-total" data-testid="analysis-total">{won(total)}<span>{months.length}개월 {partLabel}</span></div>
+    <div className="chart-total" data-testid="analysis-total">{won(total)}<span>{Number(selectedMonth.slice(0, 4))}년 {Number(selectedMonth.slice(5))}월 {partLabel}</span></div>
     {hasNegative && analysisChartType === 'pie' && total > 0 && <p className="analysis-note">음수 금액이 포함되어 막대그래프로 표시합니다.</p>}
     {total > 0 ? <div className="analysis-visual">
       <div className="analysis-chart-scroll">
