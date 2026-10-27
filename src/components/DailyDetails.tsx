@@ -19,6 +19,7 @@ type Props = {
   month: string;
   partLabel: string;
   onMonthChange: (month: string) => void;
+  embedded?: boolean;
 };
 
 function DayPages({ pages, calendarDays }: { pages: DayDetails[]; calendarDays: CalendarDay[] }) {
@@ -51,10 +52,10 @@ function DayPages({ pages, calendarDays }: { pages: DayDetails[]; calendarDays: 
   </>;
 }
 
-export default function DailyDetails({ transactions, calendarTransactions, month, partLabel, onMonthChange }: Props) {
+export default function DailyDetails({ transactions, calendarTransactions, month, partLabel, onMonthChange, embedded = false }: Props) {
   const pages = useMemo(() => getDailyDetails(transactions, month), [transactions, month]);
   const calendarDays = useMemo(() => getMonthlyCalendar(calendarTransactions, month), [calendarTransactions, month]);
-  return <section className="card detail-card" aria-label={`세부 ${partLabel}`}>
+  return <section className={`${embedded ? '' : 'card '}detail-card`} aria-label={`세부 ${partLabel}`}>
     <div className="chart-header">
       <div className="chart-title"><span className="icon-box"><List size={18} /></span><h2>세부 {partLabel}</h2></div>
     </div>

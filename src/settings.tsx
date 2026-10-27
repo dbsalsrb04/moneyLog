@@ -1,24 +1,36 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import type { CategoryGrouping } from './analysis';
 
 export type CategorySelectionMode = 'tree' | 'buttons';
-const STORAGE_KEY = 'moneylog.categorySelectionMode';
+export type AnalysisChartType = 'pie' | 'bar';
 const SettingsContext = createContext<{
   categorySelectionMode: CategorySelectionMode;
   setCategorySelectionMode: (mode: CategorySelectionMode) => void;
+  analysisChartType: AnalysisChartType;
+  setAnalysisChartType: (type: AnalysisChartType) => void;
+  analysisCategoryGrouping: CategoryGrouping;
+  setAnalysisCategoryGrouping: (grouping: CategoryGrouping) => void;
 } | null>(null);
 
-export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [categorySelectionMode, setCategorySelectionMode] = useState<CategorySelectionMode>(() => {
-    try { return localStorage.getItem(STORAGE_KEY) === 'buttons' ? 'buttons' : 'tree'; }
-    catch { return 'tree'; }
+function useStoredSetting<T extends string>(key: string, values: readonly T[], fallback: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return values.includes(stored as T) ? stored as T : fallback;
+    } catch { return fallback; }
   });
-
   useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, categorySelectionMode); }
+    try { localStorage.setItem(key, value); }
     catch { /* Keep the setting for this session when browser storage is unavailable. */ }
-  }, [categorySelectionMode]);
+  }, [key, value]);
+  return [value, setValue] as const;
+}
 
-  return <SettingsContext.Provider value={{ categorySelectionMode, setCategorySelectionMode }}>{children}</SettingsContext.Provider>;
+export function SettingsProvider({ children }: { children: ReactNode }) {
+  const [categorySelectionMode, setCategorySelectionMode] = useStoredSetting<CategorySelectionMode>('moneylog.categorySelectionMode', ['tree', 'buttons'], 'tree');
+  const [analysisChartType, setAnalysisChartType] = useStoredSetting<AnalysisChartType>('moneylog.analysisChartType', ['pie', 'bar'], 'pie');
+  const [analysisCategoryGrouping, setAnalysisCategoryGrouping] = useStoredSetting<CategoryGrouping>('moneylog.analysisCategoryGrouping', ['parent', 'full'], 'parent');
+  return <SettingsContext.Provider value={{ categorySelectionMode, setCategorySelectionMode, analysisChartType, setAnalysisChartType, analysisCategoryGrouping, setAnalysisCategoryGrouping }}>{children}</SettingsContext.Provider>;
 }
 
 export function useSettings() {

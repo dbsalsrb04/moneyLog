@@ -9,14 +9,15 @@ type Props = {
   selectedMonth?: string;
   onSelect?: (month: string) => void;
   comparison?: MonthlyComparison;
+  active?: boolean;
 };
 
-export default function SpendingChart({ points, partLabel, daily, selectedMonth, onSelect, comparison }: Props) {
+export default function SpendingChart({ points, partLabel, daily, selectedMonth, onSelect, comparison, active = true }: Props) {
   const chartData: (Point | ComparisonPoint)[] = comparison?.points ?? points;
   return <>
     <div className="axis-caption">금액 (원)</div>
     <div className="chart" role="img" aria-label={`${daily ? '일별' : '월별'} ${comparison ? '유형 비교' : partLabel} 막대그래프`}>
-      <ResponsiveContainer width="100%" height="100%">
+      {active && <ResponsiveContainer width="100%" height="100%">
         <BarChart data={chartData} margin={{ top: 12, right: 12, left: 0, bottom: 8 }} barGap={0} accessibilityLayer>
           <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="#e9edf3" />
           <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8490a3' }} tickMargin={12} interval={daily ? 2 : 'preserveStartEnd'} minTickGap={8} />
@@ -51,7 +52,7 @@ export default function SpendingChart({ points, partLabel, daily, selectedMonth,
             style={{ cursor: onSelect ? 'pointer' : 'default' }}
           >{points.map(point => <Cell key={point.key} fill={daily ? '#8297f3' : point.key === selectedMonth ? '#4768e8' : '#a9b8f5'} />)}</Bar>}
         </BarChart>
-      </ResponsiveContainer>
+      </ResponsiveContainer>}
     </div>
     <details className="chart-data"><summary>{daily ? '일별' : '월별'} 금액 표</summary>
       <AmountTable points={points} partLabel={partLabel} daily={daily} selectedMonth={selectedMonth} onSelect={onSelect} comparison={comparison} />

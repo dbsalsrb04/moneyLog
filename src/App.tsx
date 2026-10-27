@@ -10,6 +10,8 @@ import SpendingChart from './components/SpendingChart';
 import DailyDetails from './components/DailyDetails';
 import SearchDialog from './components/SearchDialog';
 import SettingsDialog from './components/SettingsDialog';
+import ViewTabs, { type DashboardView } from './components/ViewTabs';
+import CategoryAnalysis from './components/CategoryAnalysis';
 
 export default function App() {
   const [backup, setBackup] = useState<Backup | null>(null);
@@ -25,6 +27,7 @@ export default function App() {
   const [datasetVersion, setDatasetVersion] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [view, setView] = useState<DashboardView>('monthly');
   const uploadVersion = useRef(0);
   const partLabel = TRANSACTION_PARTS.find(item => item.value === part)!.label;
 
@@ -101,7 +104,6 @@ export default function App() {
       />
       {error && <div className="error" role="alert">{error}{backup && ' 기존 분석 데이터는 유지됩니다.'}</div>}
       <div className="section-heading">
-        <h2>거래 대시보드</h2>
         <div className="dashboard-actions">
           <button className="search-trigger" disabled={!backup} aria-haspopup="dialog" onClick={() => setSearchOpen(true)}><Search className="memo-search-icon" size={17} />검색</button>
           <div className="part-selector" role="group" aria-label="거래 유형">
@@ -115,55 +117,68 @@ export default function App() {
         </div>
       </div>
       <div className="dashboard">
-        <div className="charts-column">{backup ? <>
-          <section className="card chart-card monthly-card" aria-label={comparison ? '월별 유형 비교' : `월별 ${partLabel}`}>
-            <div className="chart-header">
-              <div>
-                <div className="chart-title"><span className="icon-box"><BarChart3 size={18} /></span><h2>{comparison ? '월별 유형 비교' : `월별 ${partLabel}`}</h2></div>
-                <p className="chart-description">{monthly[0].label} – {monthly.at(-1)?.label} · 최근 {period}개월</p>
-              </div>
-              <div className="monthly-controls">
-                <button className={`comparison-toggle ${comparison ? 'active' : ''}`} aria-expanded={Boolean(comparison)} aria-controls="monthly-comparison-options" onClick={() => setComparisonParts(previous => previous ? null : [part])}>{comparison ? '비교 종료' : '다른 유형과 비교하기'}</button>
-                <div className="segmented" aria-label="월별 표시 기간">{[12, 6, 3].map(n => <button key={n} aria-pressed={period === n} className={period === n ? 'active' : ''} onClick={() => setPeriod(n)}>{n}개월</button>)}</div>
-              </div>
+        <div className="charts-column"><section className="card view-card" aria-label="거래 조회">
+          <ViewTabs value={view} onChange={setView} />
+          {backup ? <>
+            <div role="tabpanel" id="panel-monthly" aria-labelledby="tab-monthly" hidden={view !== 'monthly'}>
+              <section className="chart-card monthly-card" aria-label={comparison ? '월별 유형 비교' : `월별 ${partLabel}`}>
+                <div className="chart-header">
+                  <div>
+                    <div className="chart-title"><span className="icon-box"><BarChart3 size={18} /></span><h2>{comparison ? '월별 유형 비교' : `월별 ${partLabel}`}</h2></div>
+                    <p className="chart-description">{monthly[0].label} – {monthly.at(-1)?.label} · 최근 {period}개월</p>
+                  </div>
+                  <div className="monthly-controls">
+                    <button className={`comparison-toggle ${comparison ? 'active' : ''}`} aria-expanded={Boolean(comparison)} aria-controls="monthly-comparison-options" onClick={() => setComparisonParts(previous => previous ? null : [part])}>{comparison ? '비교 종료' : '다른 유형과 비교하기'}</button>
+                    <div className="segmented" aria-label="월별 표시 기간">{[12, 6, 3].map(n => <button key={n} aria-pressed={period === n} className={period === n ? 'active' : ''} onClick={() => setPeriod(n)}>{n}개월</button>)}</div>
+                  </div>
+                </div>
+                <div id="monthly-comparison-options" hidden={!comparisonParts}>
+                  {comparisonParts && <div className="comparison-options" role="group" aria-label="월별 비교 유형">
+                    {TRANSACTION_PARTS.map(item => <button
+                      key={item.value}
+                      className={`chip ${comparisonParts.includes(item.value) ? 'selected' : ''}`}
+                      aria-pressed={comparisonParts.includes(item.value)}
+                      disabled={comparisonParts.includes(item.value) ? comparisonParts.length === 1 : comparisonParts.length === 2}
+                      onClick={() => toggleComparisonPart(item.value)}
+                    >{item.label}</button>)}
+                    <span className="comparison-count">{comparisonParts.length} / 2</span>
+                  </div>}
+                </div>
+                {comparison ? <div className="comparison-totals">{comparison.parts.map(value => <div key={value} data-testid={`comparison-total-${value}`}>
+                  <span className="comparison-series-label"><i style={{ background: TRANSACTION_COLORS[value] }} />{TRANSACTION_PARTS.find(item => item.value === value)!.label}</span>
+                  <strong>{won(comparison.points.reduce((sum, point) => sum + point[value], 0))}</strong>
+                </div>)}</div> : <div className="chart-total" data-testid="monthly-total">{won(total(monthly))}<span>선택 기간 {partLabel}</span></div>}
+                <SpendingChart points={monthly} partLabel={partLabel} selectedMonth={month} onSelect={setMonth} comparison={comparison} active={view === 'monthly'} />
+              </section>
             </div>
-            <div id="monthly-comparison-options" hidden={!comparisonParts}>
-              {comparisonParts && <div className="comparison-options" role="group" aria-label="월별 비교 유형">
-                {TRANSACTION_PARTS.map(item => <button
-                  key={item.value}
-                  className={`chip ${comparisonParts.includes(item.value) ? 'selected' : ''}`}
-                  aria-pressed={comparisonParts.includes(item.value)}
-                  disabled={comparisonParts.includes(item.value) ? comparisonParts.length === 1 : comparisonParts.length === 2}
-                  onClick={() => toggleComparisonPart(item.value)}
-                >{item.label}</button>)}
-                <span className="comparison-count">{comparisonParts.length} / 2</span>
-              </div>}
+            <div role="tabpanel" id="panel-daily" aria-labelledby="tab-daily" hidden={view !== 'daily'}>
+              <section className="chart-card" aria-label={`일별 ${partLabel}`}>
+                <div className="chart-header">
+                  <div className="chart-title"><span className="icon-box violet"><CalendarDays size={18} /></span><h2>일별 {partLabel}</h2></div>
+                  <label className="month-select"><CalendarDays size={14} /><select aria-label="일별 조회 월" value={month} onChange={e => setMonth(e.target.value)}>
+                    {[...new Set([month, ...months])].sort().reverse().map(m => <option key={m} value={m}>{m.split('-')[0]}년 {Number(m.split('-')[1])}월</option>)}
+                  </select></label>
+                </div>
+                <div className="chart-total" data-testid="daily-total">{won(total(daily))}<span>{month.replace('-', '년 ')}월 {partLabel}</span></div>
+                <SpendingChart points={daily} partLabel={partLabel} daily active={view === 'daily'} />
+              </section>
             </div>
-            {comparison ? <div className="comparison-totals">{comparison.parts.map(value => <div key={value} data-testid={`comparison-total-${value}`}>
-              <span className="comparison-series-label"><i style={{ background: TRANSACTION_COLORS[value] }} />{TRANSACTION_PARTS.find(item => item.value === value)!.label}</span>
-              <strong>{won(comparison.points.reduce((sum, point) => sum + point[value], 0))}</strong>
-            </div>)}</div> : <div className="chart-total" data-testid="monthly-total">{won(total(monthly))}<span>선택 기간 {partLabel}</span></div>}
-            <SpendingChart points={monthly} partLabel={partLabel} selectedMonth={month} onSelect={setMonth} comparison={comparison} />
-          </section>
-          <section className="card chart-card" aria-label={`일별 ${partLabel}`}>
-            <div className="chart-header">
-              <div className="chart-title"><span className="icon-box violet"><CalendarDays size={18} /></span><h2>일별 {partLabel}</h2></div>
-              <label className="month-select"><CalendarDays size={14} /><select aria-label="일별 조회 월" value={month} onChange={e => setMonth(e.target.value)}>
-                {[...new Set([month, ...months])].sort().reverse().map(m => <option key={m} value={m}>{m.split('-')[0]}년 {Number(m.split('-')[1])}월</option>)}
-              </select></label>
+            <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden={view !== 'details'}>
+              <DailyDetails
+                key={datasetVersion}
+                transactions={filtered}
+                calendarTransactions={matching}
+                month={month}
+                partLabel={partLabel}
+                onMonthChange={setMonth}
+                embedded
+              />
             </div>
-            <div className="chart-total" data-testid="daily-total">{won(total(daily))}<span>{month.replace('-', '년 ')}월 {partLabel}</span></div>
-            <SpendingChart points={daily} partLabel={partLabel} daily />
-          </section>
-          <DailyDetails
-            key={datasetVersion}
-            transactions={filtered}
-            calendarTransactions={matching}
-            month={month}
-            partLabel={partLabel}
-            onMonthChange={setMonth}
-          />
-        </> : <section className="card empty-state"><p>JSON 파일을 선택하면 분석 결과가 표시됩니다.</p></section>}</div>
+            <div role="tabpanel" id="panel-analysis" aria-labelledby="tab-analysis" hidden={view !== 'analysis'}>
+              <CategoryAnalysis key={`${datasetVersion}-${month}`} transactions={filtered} month={month} partLabel={partLabel} active={view === 'analysis'} />
+            </div>
+          </> : <div className="empty-state"><p>JSON 파일을 선택하면 분석 결과가 표시됩니다.</p></div>}
+        </section></div>
         <aside>
           <div className="filter-toolbar"><span>필터 설정</span><button disabled={!backup || (!categories.length && !tags.length)} onClick={resetFilters}><RotateCcw size={12} />초기화</button></div>
           <FilterPanel key={`category-${part}-${datasetVersion}`} kind="category" options={options.categories} recordedCategories={options.recordedCategories} selected={categories} onChange={setCategories} disabled={!backup} />

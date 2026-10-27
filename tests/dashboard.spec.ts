@@ -1,3 +1,4 @@
+import { selectDailyMonth, setMonthlyPeriod } from './viewHelpers';
 import {test,expect} from '@playwright/test';
 const backup={moneyTrackTable:[
 {id:1,part:'E',category:'식비/편의점',amount:7200,tags:['간식','식비'],dateKey:'2026-08-01'},
@@ -19,13 +20,13 @@ test('파일 업로드, 다중 필터, 기간 유지, 재업로드 및 오류 �
  await c.getByRole('button',{name:'식비',exact:true}).click();await expect(c.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','false');await expect(page.getByTestId('monthly-total')).toContainText('20,400원');
  await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('7,200원');await expect(page.getByTestId('daily-total')).toContainText('7,200원');
  await t.getByRole('button',{name:'식비',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('20,400원');
- await page.getByRole('button',{name:'3개월',exact:true}).click();await page.getByLabel('일별 조회 월').selectOption('2026-07');
- await t.getByRole('button',{name:'교통비',exact:true}).click();await t.getByRole('button',{name:'식비',exact:true}).click();await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('0원');await expect(page.getByTestId('daily-total')).toContainText('0원');await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
+ await setMonthlyPeriod(page,3);await selectDailyMonth(page,'2026-07');
+ await t.getByRole('button',{name:'교통비',exact:true}).click();await t.getByRole('button',{name:'식비',exact:true}).click();await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('0원');await expect(page.getByTestId('daily-total')).toContainText('0원');await expect(page.getByRole('button',{name:'3개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
  await t.getByRole('button',{name:'교통비',exact:true}).click();await expect(t.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
  await c.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('21,378원');
  await page.getByRole('region',{name:'월별 지출',exact:true}).locator('.recharts-bar-rectangle').first().click();await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
  await page.getByRole('region',{name:'월별 지출',exact:true}).locator('summary').click();await page.getByRole('button',{name:'2026-08',exact:true}).click();await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-08');
- await upload(page,{moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]},'next.json');await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2024-02');await expect(page.getByRole('button',{name:'12개월',exact:true})).toHaveAttribute('aria-pressed','true');await expect(c.getByRole('button',{name:'식비',exact:true})).toHaveCount(0);
+ await upload(page,{moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]},'next.json');await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(page.getByLabel('일별 조회 월')).toHaveValue('2024-02');await expect(page.getByRole('button',{name:'12개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');await expect(c.getByRole('button',{name:'식비',exact:true})).toHaveCount(0);
  await upload(page,{});await expect(page.getByRole('alert')).toBeVisible();await expect(page.getByTestId('daily-total')).toContainText('900원');expect(errors).toEqual([]);
 });
 test('모바일에서 가로 넘침 없이 표시한다',async({page})=>{await page.setViewportSize({width:390,height:844});await page.goto('/');await upload(page);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await expect(page.getByRole('region',{name:'태그 필터'})).toBeVisible();});
@@ -70,7 +71,7 @@ test('수입·지출·저축·기록 전환 시 두 차트와 필터가 함께 �
  const parts=page.getByRole('group',{name:'거래 유형'});
  const c=page.getByRole('region',{name:'카테고리 필터'}),tags=page.getByRole('region',{name:'태그 필터'});
  await c.getByRole('button',{name:'식비',exact:true}).click();await tags.getByRole('button',{name:'간식',exact:true}).click();
- await page.getByRole('button',{name:'3개월',exact:true}).click();await page.getByLabel('일별 조회 월').selectOption('2026-07');
+ await setMonthlyPeriod(page,3);await selectDailyMonth(page,'2026-07');
  await parts.getByRole('button',{name:'수입',exact:true}).click();
  await expect(parts.getByRole('button',{name:'수입',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByTestId('monthly-total')).toContainText('100,000원');await expect(page.getByTestId('daily-total')).toContainText('0원');
@@ -79,8 +80,9 @@ test('수입·지출·저축·기록 전환 시 두 차트와 필터가 함께 �
  await expect(tags.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect(c.getByRole('button',{name:'식비',exact:true})).toHaveCount(0);
  await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
- await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.getByLabel('일별 조회 월').selectOption('2026-08');
+ await expect(page.getByRole('button',{name:'3개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');
+ await selectDailyMonth(page,'2026-08');
+ await page.getByRole('tab',{name:'일별',exact:true}).click();
  for(const [name,total] of [['수입','100,000원'],['저축','50,000원'],['기록','1원'],['지출','20,400원']]){
   await parts.getByRole('button',{name,exact:true}).click();await expect(page.getByTestId('daily-total')).toContainText(total);
   await expect(page.getByRole('region',{name:`일별 ${name}`,exact:true})).toBeVisible();
@@ -114,6 +116,7 @@ test('드래그 앤 드롭 업로드·교체·잘못된 파일 및 다중 파일
 test('금액 표는 날짜 열을 유지하고 가장 긴 금액의 1.3배 너비를 사용한다',async({page})=>{
  await page.goto('/');await upload(page);
  for(const regionName of ['월별 지출','일별 지출']){
+  await page.getByRole('tab',{name:regionName.startsWith('월별')?'월별':'일별',exact:true}).click();
   const chart=page.getByRole('region',{name:regionName,exact:true});
   await chart.locator('summary').click();
   const container=chart.locator('.amount-table-container');
@@ -126,6 +129,7 @@ test('금액 표는 날짜 열을 유지하고 가장 긴 금액의 1.3배 너�
   })).toBe(true);
  }
  await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'간식',exact:true}).click();
+ await page.getByRole('tab',{name:'월별',exact:true}).click();
  await expect.poll(async()=>page.getByRole('region',{name:'월별 지출',exact:true}).locator('.amount-table-container').evaluate(element=>{
   const maxText=Math.max(...[...element.querySelectorAll<HTMLElement>('.amount-text')].map(text=>text.getBoundingClientRect().width));
   return Math.abs(element.querySelector('td.amount-cell')!.getBoundingClientRect().width-maxText*1.3)<2;
@@ -135,6 +139,7 @@ test('금액 표는 날짜 열을 유지하고 가장 긴 금액의 1.3배 너�
 test('세부 내역은 하루씩 넘기며 필터·유형·월과 연동된다',async({page})=>{
  await page.goto('/');
  await upload(page,{...backup,moneyTrackTable:backup.moneyTrackTable.map(t=>({...t,memo:t.id===1?'편의점\n간식 구매':`메모 ${t.id}`}))});
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const detail=page.getByRole('region',{name:'세부 지출',exact:true});
  await expect(detail.getByRole('button',{name:'이전 날짜',exact:true})).toBeDisabled();
  await expect(detail.locator('time')).toHaveText('2026-08-01');
@@ -159,7 +164,7 @@ test('세부 내역은 하루씩 넘기며 필터·유형·월과 연동된다',
  await expect(detail.locator('.detail-entry')).toContainText('978원');
  await page.getByRole('group',{name:'거래 유형'}).getByRole('button',{name:'저축',exact:true}).click();
  await expect(page.getByRole('region',{name:'세부 저축',exact:true}).locator('.detail-empty')).toBeVisible();
- await page.getByLabel('일별 조회 월').selectOption('2026-08');
+ await selectDailyMonth(page,'2026-08');
  await expect(page.getByRole('button',{name:'세부 내역 조회 월',exact:true})).toHaveText('2026년 8월');
  await expect(page.getByRole('region',{name:'세부 저축',exact:true}).locator('.detail-entry')).toContainText('50,000원');
 });
@@ -167,6 +172,7 @@ test('세부 내역은 하루씩 넘기며 필터·유형·월과 연동된다',
 test('윤년 월말과 파일 교체, 모바일에서도 세부 내역이 한 날짜로 제한된다',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');
  await upload(page,{moneyTrackTable:[{id:1,part:'E',category:'매우긴카테고리/하위분류',amount:1000,memo:'아주긴메모'.repeat(20),tags:['태그'.repeat(30)],dateKey:'2024-02-29'}]});
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const detail=page.getByRole('region',{name:'세부 지출',exact:true});
  for(let day=1;day<29;day++)await detail.getByRole('button',{name:'다음 날짜',exact:true}).click();
  await expect(detail.locator('time')).toHaveText('2024-02-29');
@@ -190,6 +196,7 @@ test('캘린더에서 월말로 바로 이동하고 네 유형의 합계·필터
   {id:5,part:'O',category:'기록',amount:1,tags:['공통'],dateKey:'2026-08-01'},
   {id:6,part:'E',category:'식비',amount:1234,memo:'월말',tags:['공통'],dateKey:'2026-08-31'},
  ]});
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const calendar=page.getByRole('group',{name:'월간 거래 캘린더'});
  const first=calendar.getByRole('button',{name:'2026-08-01 선택',exact:true});
  await expect(first).toHaveAttribute('aria-pressed','true');
@@ -205,6 +212,7 @@ test('캘린더에서 월말로 바로 이동하고 네 유형의 합계·필터
  await expect(calendar.locator('.calendar-grid>div,.calendar-grid>button')).toHaveCount(42);
  expect(await calendar.locator('.calendar-day').first().evaluate(element=>[...element.parentElement!.children].indexOf(element))).toBe(6);
  await calendar.getByRole('button',{name:'2026-08-31 선택',exact:true}).click();
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const detail=page.getByRole('region',{name:'세부 지출',exact:true});
  await expect(detail.locator('time')).toHaveText('2026-08-31');
  await expect(detail.locator('.detail-entry')).toContainText('월말');
@@ -230,6 +238,7 @@ test('모바일 캘린더는 큰 금액도 한 줄로 맞추고 윤년 날짜를
   {id:1,part:'R',category:'수입',amount:1234567890,tags:[],dateKey:'2024-02-29'},
   {id:2,part:'E',category:'식비',amount:1234567,tags:[],dateKey:'2024-02-29'},
  ]});
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const calendar=page.getByRole('group',{name:'월간 거래 캘린더'});
  await expect(calendar.locator('.calendar-day')).toHaveCount(29);
  const last=calendar.getByRole('button',{name:'2024-02-29 선택',exact:true});
@@ -246,7 +255,7 @@ test('모바일 캘린더는 큰 금액도 한 줄로 맞추고 윤년 날짜를
 
 test('월별 비교는 두 유형까지만 선택하고 같은 월의 막대를 절반씩 나란히 표시한다',async({page})=>{
  await page.goto('/');await upload(page);
- await page.getByRole('button',{name:'3개월',exact:true}).click();
+ await setMonthlyPeriod(page,3);
  const monthly=page.locator('.monthly-card');
  await monthly.getByRole('button',{name:'다른 유형과 비교하기',exact:true}).click();
  const types=monthly.getByRole('group',{name:'월별 비교 유형'});
@@ -268,7 +277,7 @@ test('월별 비교는 두 유형까지만 선택하고 같은 월의 막대를 
  await series.nth(1).locator('.recharts-bar-rectangle').last().hover();
  await expect(monthly.locator('.chart-tooltip')).toContainText('20,400원');
  await expect(monthly.locator('.chart-tooltip')).toContainText('100,000원');
- await page.getByLabel('일별 조회 월').selectOption('2026-07');
+ await selectDailyMonth(page,'2026-07');
  await series.nth(1).locator('.recharts-bar-rectangle').last().click();
  await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-08');
  await monthly.locator('summary').click();
@@ -288,7 +297,7 @@ test('월별 비교는 두 유형까지만 선택하고 같은 월의 막대를 
  await monthly.getByRole('button',{name:'비교 종료',exact:true}).click();
  await expect(monthly.getByRole('group',{name:'월별 비교 유형'})).toHaveCount(0);
  await expect(page.getByTestId('monthly-total')).toContainText('7,200원');
- await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByRole('button',{name:'3개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');
 });
 
 test('모바일 비교와 거래 유형 변경·파일 교체 시 비교 상태 초기화',async({page})=>{
@@ -312,10 +321,11 @@ test('모바일 비교와 거래 유형 변경·파일 교체 시 비교 상태 
 
 test('세부 내역의 월 화살표와 12개월 팝업은 조회 월·필터·기간을 연동한다',async({page})=>{
  await page.goto('/');await upload(page);
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const detail=page.getByRole('region',{name:'세부 지출',exact:true});
  const trigger=detail.getByRole('button',{name:'세부 내역 조회 월',exact:true});
  await expect(detail.locator('select')).toHaveCount(0);
- await page.getByRole('button',{name:'3개월',exact:true}).click();
+ await setMonthlyPeriod(page,3);
  await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'교통비',exact:true}).click();
  await detail.getByRole('button',{name:'2026-08-31 선택',exact:true}).click();
  await detail.getByRole('button',{name:'이전 달',exact:true}).click();
@@ -337,12 +347,13 @@ test('세부 내역의 월 화살표와 12개월 팝업은 조회 월·필터·�
  await expect(page.getByLabel('일별 조회 월')).toHaveValue('2027-01');
  await detail.getByRole('button',{name:'이전 달',exact:true}).click();
  await expect(trigger).toHaveText('2026년 12월');
- await expect(page.getByRole('button',{name:'3개월',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(page.getByRole('button',{name:'3개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');
  await expect(page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'교통비',exact:true})).toHaveAttribute('aria-pressed','true');
 });
 
 test('12개 연도 목록에서 추가 확대 없이 연도와 월을 선택한다',async({page})=>{
  await page.goto('/');await upload(page,{moneyTrackTable:[{id:1,part:'E',category:'식비',amount:1000,tags:[],dateKey:'2027-06-01'}]});
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const trigger=page.getByRole('button',{name:'세부 내역 조회 월',exact:true});
  await trigger.click();
  const popup=page.getByRole('dialog',{name:'조회 월 선택'});
@@ -364,6 +375,7 @@ test('12개 연도 목록에서 추가 확대 없이 연도와 월을 선택한�
 
 test('팝업 탐색·키보드 선택·Escape·바깥 클릭과 외부 월 변경을 처리한다',async({page})=>{
  await page.goto('/');await upload(page,{moneyTrackTable:[{id:1,part:'E',category:'식비',amount:1000,tags:[],dateKey:'2027-06-01'}]});
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const trigger=page.getByRole('button',{name:'세부 내역 조회 월',exact:true});
  const popup=page.getByRole('dialog',{name:'조회 월 선택'});
  await trigger.click();
@@ -381,7 +393,7 @@ test('팝업 탐색·키보드 선택·Escape·바깥 클릭과 외부 월 변�
  await expect(popup.getByRole('button',{name:'2021년 선택',exact:true})).toBeVisible();
  await page.getByRole('region',{name:'세부 지출',exact:true}).getByRole('heading',{name:'세부 지출',exact:true}).click();
  await expect(popup).toHaveCount(0);await expect(trigger).toHaveText('2027년 6월');
- await trigger.click();await page.getByLabel('일별 조회 월').selectOption('2027-05');
+ await trigger.click();await selectDailyMonth(page,'2027-05');
  await expect(popup).toHaveCount(0);await expect(trigger).toHaveText('2027년 5월');
  await trigger.click();await page.keyboard.press('Home');await page.keyboard.press('Enter');
  await expect(trigger).toHaveText('2027년 1월');await expect(popup).toHaveCount(0);await expect(trigger).toBeFocused();
@@ -389,6 +401,7 @@ test('팝업 탐색·키보드 선택·Escape·바깥 클릭과 외부 월 변�
 
 test('모바일에서 연도 목록을 이동하고 월을 선택해도 넘치지 않는다',async({page})=>{
  await page.setViewportSize({width:390,height:844});await page.goto('/');await upload(page);
+ await page.getByRole('tab',{name:'세부',exact:true}).click();
  const trigger=page.getByRole('button',{name:'세부 내역 조회 월',exact:true});
  const popup=page.getByRole('dialog',{name:'조회 월 선택'});
  await trigger.click();
