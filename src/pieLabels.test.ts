@@ -10,20 +10,24 @@ const shares = (names: string[], amounts: number[]) => {
 describe('파이 카테고리 라벨 배치', () => {
   it('충분히 넓은 조각 안에는 이름과 비중을 함께 넣는다', () => {
     const layout = layoutPieLabels(shares(['식비', '여가'], [50, 50]), 500, 300, measure);
-    expect(layout.labels.map(label => label.lines)).toEqual([['식비', '50%'], ['여가', '50%']]);
+    expect(layout.labels.map(label => label.lines)).toEqual([['식비'], ['여가']]);
+    expect(layout.labels.map(label => label.percentage.text)).toEqual(['50%', '50%']);
     expect(layout.labels.every(label => label.inside && label.connector.length === 0)).toBe(true);
     const single = layoutPieLabels(shares(['식비'], [100]), 300, 260, measure);
-    expect(single.labels[0]).toMatchObject({ x: single.cx, y: single.cy, inside: true });
+    expect(single.labels[0]).toMatchObject({ x: single.cx, inside: true });
+    expect(single.labels[0].percentage.x).toBe(single.cx);
+    expect((single.labels[0].y + single.labels[0].percentage.y) / 2).toBe(single.cy);
   });
 
-  it('좁은 조각과 긴 이름은 생략하지 않고 외부로 옮겨 각 조각에 연결한다', () => {
+  it('좁은 조각과 긴 이름만 외부로 옮기고 백분율은 원 안에 유지한다', () => {
     const rows = shares(['식비', '의료비/병원에서 사용한 금액', '그 외'], [90, 5, 5]);
     const layout = layoutPieLabels(rows, 300, 260, measure);
     expect(layout.labels).toHaveLength(3);
     const small = layout.labels[1];
     expect(small.inside).toBe(false);
-    expect(small.lines.slice(0, -1).join('')).toBe(rows[1].category);
-    expect(small.lines.at(-1)).toBe('5%');
+    expect(small.lines.join('')).toBe(rows[1].category);
+    expect(small.percentage.text).toBe('5%');
+    expect(Math.hypot(small.percentage.x - layout.cx, small.percentage.y - layout.cy)).toBeLessThan(layout.radius);
     expect(Math.hypot(small.connector[0].x - layout.cx, small.connector[0].y - layout.cy)).toBeCloseTo(layout.radius);
     expect(small.connector.at(-1)?.y).toBe(small.y);
   });
@@ -33,7 +37,8 @@ describe('파이 카테고리 라벨 배치', () => {
     for (const width of [240, 320, 500]) {
       const layout = layoutPieLabels(rows, width, 260, measure);
       for (const label of layout.labels) {
-        expect(label.lines.slice(0, -1).join('')).toBe(label.category);
+        expect(label.lines.join('')).toBe(label.category);
+        expect(Math.hypot(label.percentage.x - layout.cx, label.percentage.y - layout.cy)).toBeLessThan(layout.radius);
         expect(label.y - label.height / 2).toBeGreaterThanOrEqual(0);
         expect(label.y + label.height / 2).toBeLessThanOrEqual(layout.height);
         const left = label.anchor === 'end' ? label.x - label.width : label.x;

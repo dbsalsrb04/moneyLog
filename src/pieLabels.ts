@@ -13,6 +13,7 @@ export type PieCategoryLabel = Point & {
   inside: boolean;
   anchor: 'start' | 'middle' | 'end';
   connector: Point[];
+  percentage: Point & { text: string };
 };
 type MeasureText = (text: string) => number;
 const radians = (angle: number) => -angle * Math.PI / 180;
@@ -63,18 +64,24 @@ export function layoutPieLabels(rows: CategoryShare[], width: number, viewportHe
   const outsideWidth = Math.max(12, width / 2 - radius - 18);
   const labels = slices.map<PieCategoryLabel>(slice => {
     const position = insidePosition(slice, radius);
-    const lines = position ? [slice.category, formatPercentage(slice.percentage)] : [...wrapName(slice.category, outsideWidth, measure), formatPercentage(slice.percentage)];
+    const lines = position ? [slice.category] : wrapName(slice.category, outsideWidth, measure);
     const side = Math.cos(radians(slice.mid)) >= 0 ? 1 : -1;
+    const percentageRadius = slice.end - slice.start >= 359.99 ? 0 : radius * .65;
     return {
       category: slice.category, lines, width: Math.max(...lines.map(measure)), height: lines.length * PIE_LABEL_LINE_HEIGHT,
-      x: position ? cx + position.x : cx + side * (radius + 12), y: position ? position.y : Math.sin(radians(slice.mid)) * radius,
+      x: position ? cx + position.x : cx + side * (radius + 12), y: position ? position.y - PIE_LABEL_LINE_HEIGHT / 2 : Math.sin(radians(slice.mid)) * radius,
       inside: Boolean(position), anchor: position ? 'middle' : side > 0 ? 'start' : 'end', connector: [],
+      percentage: {
+        text: formatPercentage(slice.percentage),
+        x: cx + (position ? position.x : Math.cos(radians(slice.mid)) * percentageRadius),
+        y: position ? position.y + PIE_LABEL_LINE_HEIGHT / 2 : Math.sin(radians(slice.mid)) * percentageRadius,
+      },
     };
   });
   const sides = [-1, 1].map(side => labels.filter(label => !label.inside && (label.x >= cx ? 1 : -1) === side).sort((a, b) => a.y - b.y));
   const height = Math.max(viewportHeight, ...sides.map(side => side.reduce((sum, label) => sum + label.height, PADDING * 2) + Math.max(0, side.length - 1) * GAP));
   const cy = height / 2;
-  labels.forEach(label => { label.y += cy; });
+  labels.forEach(label => { label.y += cy; label.percentage.y += cy; });
   for (const side of sides) {
     let bottom = PADDING;
     for (const label of side) {

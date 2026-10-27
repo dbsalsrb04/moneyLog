@@ -16,14 +16,16 @@ test('넓은 파이 조각 안에 카테고리 이름과 백분율을 함께 표
   const labels = page.locator('.pie-category-label');
   await expect(labels).toHaveCount(2);
   await expect(labels.filter({ hasText: '식비' })).toHaveAttribute('data-placement', 'inside');
-  await expect(labels.locator('text')).toHaveText(['식비50%', '여가50%']);
+  await expect(labels.locator('.pie-category-name')).toHaveText(['식비', '여가']);
+  await expect(labels.locator('.pie-percentage-label')).toHaveText(['50%', '50%']);
   await expect(page.locator('.pie-label-connector')).toHaveCount(0);
   await page.getByRole('region', { name: '카테고리 필터', exact: true }).getByRole('button', { name: '식비', exact: true }).click();
   await expect(labels).toHaveCount(1);
-  await expect(labels.locator('text')).toHaveText('식비100%');
+  await expect(labels.locator('.pie-category-name')).toHaveText('식비');
+  await expect(labels.locator('.pie-percentage-label')).toHaveText('100%');
 });
 
-test('좁은 조각과 긴 이름을 연결선으로 외부에 표시하며 리사이즈해도 라벨이 겹치거나 잘리지 않는다', async ({ page }) => {
+test('좁은 조각은 카테고리 이름만 외부에 표시하고 백분율은 차트 내부에 유지한다', async ({ page }) => {
   const categories = ['식비/편의점', '교통비/대중교통', '생활/세탁용품', '기타/행정발급비', '구독/동영상서비스', '여가/게임'];
   await showPie(page, categories, [65, 15, 5, 5, 5, 5]);
   await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();
@@ -32,15 +34,15 @@ test('좁은 조각과 긴 이름을 연결선으로 외부에 표시하며 리�
     const labels = page.locator('.pie-category-label');
     await expect(labels).toHaveCount(6);
     expect(new Set(await labels.evaluateAll(elements => elements.map(element => element.getAttribute('data-category'))))).toEqual(new Set(categories));
-    const texts = await labels.locator('text').allTextContents();
-    for (const category of categories) expect(texts.some(text => text.startsWith(category) && text.endsWith('%'))).toBe(true);
+    expect(new Set(await labels.locator('.pie-category-name').allTextContents())).toEqual(new Set(categories));
+    await expect(labels.locator('.pie-percentage-label')).toHaveText(['65%', '15%', '5%', '5%', '5%', '5%']);
     await expect(page.locator('.pie-category-label[data-placement="outside"]').first()).toBeVisible();
     await expect.poll(() => page.locator('.analysis-pie').evaluate(root => {
       const svg = root.querySelector('svg')!.getBoundingClientRect();
       const labels = [...root.querySelectorAll('.pie-category-label')].map(element => ({
         placement: element.getAttribute('data-placement'),
-        anchor: element.querySelector('text')!.getAttribute('text-anchor'),
-        box: element.querySelector('text')!.getBoundingClientRect(),
+        anchor: element.querySelector('.pie-category-name')!.getAttribute('text-anchor'),
+        box: element.querySelector('.pie-category-name')!.getBoundingClientRect(),
         connector: element.querySelector('polyline'),
       }));
       const within = labels.every(({ box, placement, connector }) => box.left >= svg.left - 1 && box.right <= svg.right + 1 && box.top >= svg.top - 1 && box.bottom <= svg.bottom + 1 && (placement === 'inside' || connector !== null));
@@ -48,7 +50,14 @@ test('좁은 조각과 긴 이름을 연결선으로 외부에 표시하며 리�
         const side = labels.filter(label => label.placement === 'outside' && label.anchor === anchor).sort((a, b) => a.box.top - b.box.top);
         return side.slice(1).every((label, index) => label.box.top > side[index].box.bottom);
       });
-      return within && separate && document.documentElement.scrollWidth <= innerWidth;
+      const shapes = [...root.querySelectorAll('.analysis-category-shape')].map(element => element.getBoundingClientRect());
+      const left = Math.min(...shapes.map(box => box.left)), right = Math.max(...shapes.map(box => box.right));
+      const top = Math.min(...shapes.map(box => box.top)), bottom = Math.max(...shapes.map(box => box.bottom));
+      const percentagesInside = [...root.querySelectorAll('.pie-percentage-label')].every(element => {
+        const box = element.getBoundingClientRect();
+        return box.left >= left && box.right <= right && box.top >= top && box.bottom <= bottom;
+      });
+      return within && separate && percentagesInside && document.documentElement.scrollWidth <= innerWidth;
     })).toBe(true);
   }
 });

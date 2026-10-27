@@ -39,9 +39,10 @@ export default function AnalysisPieChart({ rows, onHighlight, onOtherClick, tool
           if (!label) return null;
           return <g className="pie-category-label" data-placement={label.inside ? 'inside' : 'outside'} data-category={label.category} pointerEvents="none">
             {!label.inside && <polyline className="pie-label-connector" points={label.connector.map(point => `${point.x},${point.y}`).join(' ')} fill="none" stroke={rows[index].color} strokeWidth={1} />}
-            <text x={label.x} y={label.y - (label.lines.length - 1) * PIE_LABEL_LINE_HEIGHT / 2} textAnchor={label.anchor} dominantBaseline="central" fill={label.inside ? '#fff' : '#63718a'} fontSize={PIE_LABEL_FONT_SIZE}>
+            <text className="pie-category-name" x={label.x} y={label.y - (label.lines.length - 1) * PIE_LABEL_LINE_HEIGHT / 2} textAnchor={label.anchor} dominantBaseline="central" fill={label.inside ? '#fff' : '#63718a'} fontSize={PIE_LABEL_FONT_SIZE}>
               {label.lines.map((line, lineIndex) => <tspan key={lineIndex} x={label.x} dy={lineIndex === 0 ? 0 : PIE_LABEL_LINE_HEIGHT}>{line}</tspan>)}
             </text>
+            <text className="pie-percentage-label" x={label.percentage.x} y={label.percentage.y} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={PIE_LABEL_FONT_SIZE}>{label.percentage.text}</text>
           </g>;
         }}>
         {rows.map(row => <Cell key={row.key} fill={row.color} data-category-key={row.key} style={{ cursor: row.isOther ? 'pointer' : 'default' }} className="analysis-category-shape" />)}
