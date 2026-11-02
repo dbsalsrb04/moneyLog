@@ -95,14 +95,16 @@ export default function App() {
       <a className="brand" href="./"><span className="brand-mark"><BarChart3 size={22} /></span>money<span>Log</span><span className="brand-dot" /></a>
       <button className="settings-trigger" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}><Settings size={17} />설정</button>
     </header>
-    <main>
+    <main className={backup ? undefined : 'initial-screen'}>
       <FileUpload
+        expanded={!backup}
         fileName={fileName}
         loading={loading}
         onFiles={upload}
         summary={backup ? `${backup.transactions.length.toLocaleString('ko-KR')}개 거래 · ${backup.firstMonth.replace('-', '.')} – ${backup.latestMonth.replace('-', '.')}` : undefined}
       />
       {error && <div className="error" role="alert">{error}{backup && ' 기존 분석 데이터는 유지됩니다.'}</div>}
+      {backup && <>
       <div className="section-heading">
         <div className="dashboard-actions">
           <button className="search-trigger" disabled={!backup} aria-haspopup="dialog" onClick={() => setSearchOpen(true)}><Search className="memo-search-icon" size={17} />검색</button>
@@ -119,7 +121,6 @@ export default function App() {
       <div className="dashboard">
         <div className="charts-column"><section className="card view-card" aria-label="거래 조회">
           <ViewTabs value={view} onChange={setView} />
-          {backup ? <>
             <div role="tabpanel" id="panel-monthly" aria-labelledby="tab-monthly" hidden={view !== 'monthly'}>
               <section className="chart-card monthly-card" aria-label={comparison ? '월별 유형 비교' : `월별 ${partLabel}`}>
                 <div className="chart-header">
@@ -177,7 +178,6 @@ export default function App() {
             <div role="tabpanel" id="panel-analysis" aria-labelledby="tab-analysis" hidden={view !== 'analysis'}>
               <CategoryAnalysis key={`${datasetVersion}-${month}`} transactions={filtered} month={month} partLabel={partLabel} active={view === 'analysis'} />
             </div>
-          </> : <div className="empty-state"><p>JSON 파일을 선택하면 분석 결과가 표시됩니다.</p></div>}
         </section></div>
         <aside>
           <div className="filter-toolbar"><span>필터 설정</span><button disabled={!backup || (!categories.length && !tags.length)} onClick={resetFilters}><RotateCcw size={12} />초기화</button></div>
@@ -186,6 +186,7 @@ export default function App() {
           <div className="filter-info">{backup && <p className="active-filters">카테고리: {categories.join(', ') || '전체'}<br />태그: {tags.join(', ') || '전체'}</p>}</div>
         </aside>
       </div>
+      </>}
     </main>
     {backup && searchOpen && <SearchDialog key={datasetVersion} transactions={backup.transactions} onClose={() => setSearchOpen(false)} />}
     {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}

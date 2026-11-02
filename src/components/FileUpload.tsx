@@ -3,13 +3,14 @@ import { ArrowUpRight, CheckCircle2, FileJson, Upload } from 'lucide-react';
 import { pickBackupFile } from '../filePicker';
 
 type Props = {
+  expanded?: boolean;
   fileName: string;
   summary?: string;
   loading: boolean;
   onFiles: (files: File[]) => void;
 };
 
-export default function FileUpload({ fileName, summary, loading, onFiles }: Props) {
+export default function FileUpload({ expanded = false, fileName, summary, loading, onFiles }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const dragDepth = useRef(0);
   const [dragging, setDragging] = useState(false);
@@ -32,7 +33,7 @@ export default function FileUpload({ fileName, summary, loading, onFiles }: Prop
   }
 
   return <section
-    className={`upload-card ${dragging ? 'dragging' : ''}`}
+    className={`upload-card${expanded ? ' upload-card-expanded' : ''}${dragging ? ' dragging' : ''}`}
     aria-label="JSON 파일 업로드"
     onDragEnter={event => {
       if (!hasFiles(event)) return;
@@ -78,7 +79,7 @@ export default function FileUpload({ fileName, summary, loading, onFiles }: Prop
       }}
     />
     <button className="primary" onClick={chooseFile} disabled={loading || picking}>
-      <Upload size={16} />{loading ? '파일 읽는 중…' : fileName ? '다른 파일 선택' : 'JSON 파일 선택'}<ArrowUpRight size={16} />
+      <Upload size={16} />{loading ? '파일 읽는 중…' : fileName ? '다른 파일 선택' : expanded ? '파일 선택' : 'JSON 파일 선택'}<ArrowUpRight size={16} />
     </button>
   </section>;
 }

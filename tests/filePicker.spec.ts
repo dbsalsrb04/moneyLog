@@ -13,7 +13,7 @@ test('사이트 전용 고정 ID로 JSON 선택창을 열고 새로고침 후에
     } });
   }, backup);
   await page.goto('/');
-  await page.getByRole('button', { name: 'JSON 파일 선택', exact: true }).click();
+  await page.getByRole('button', { name: '파일 선택', exact: true }).click();
   await expect(page.getByTestId('monthly-total')).toContainText('300원');
   await expect(page.getByRole('heading', { name: 'native-backup.json', exact: true })).toBeVisible();
   const [first] = await page.evaluate(() => Reflect.get(window, 'moneyLogPickerRequests'));
@@ -24,7 +24,11 @@ test('사이트 전용 고정 ID로 JSON 선택창을 열고 새로고침 후에
   await page.getByRole('button', { name: '다른 파일 선택', exact: true }).click();
   await expect.poll(() => page.evaluate(() => Reflect.get(window, 'moneyLogPickerRequests').length)).toBe(2);
   await page.reload();
-  await page.getByRole('button', { name: 'JSON 파일 선택', exact: true }).click();
+  await expect(page.getByRole('tablist')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: '카테고리 필터' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'native-backup.json', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'JSON 파일 업로드' })).toHaveClass(/upload-card-expanded/);
+  await page.getByRole('button', { name: '파일 선택', exact: true }).click();
   await expect(page.getByTestId('monthly-total')).toContainText('300원');
   const [afterReload] = await page.evaluate(() => Reflect.get(window, 'moneyLogPickerRequests'));
   expect(afterReload.id).toBe(first.id);
@@ -38,7 +42,7 @@ for (const mode of ['unsupported', 'blocked']) {
     await page.goto('/');
     const [chooser] = await Promise.all([
       page.waitForEvent('filechooser'),
-      page.getByRole('button', { name: 'JSON 파일 선택', exact: true }).click(),
+      page.getByRole('button', { name: '파일 선택', exact: true }).click(),
     ]);
     await chooser.setFiles(file);
     await expect(page.getByTestId('monthly-total')).toContainText('300원');

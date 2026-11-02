@@ -14,7 +14,7 @@ async function selectDetailMonth(page:import('@playwright/test').Page,month:stri
  await page.getByRole('dialog',{name:'조회 월 선택'}).getByRole('button',{name:`${year}년 ${number}월 선택`,exact:true}).click();
 }
 test('파일 업로드, 다중 필터, 기간 유지, 재업로드 및 오류 복구',async({page})=>{
- const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await expect(page.getByText('JSON 파일을 선택하면 분석 결과가 표시됩니다.')).toBeVisible();
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');await expect(page.getByRole('button',{name:'파일 선택',exact:true})).toBeVisible();
  await upload(page);await expect(page.getByTestId('monthly-total')).toContainText('21,378원');await expect(page.getByTestId('daily-total')).toContainText('20,400원');
  const c=page.getByRole('region',{name:'카테고리 필터'}),t=page.getByRole('region',{name:'태그 필터'});
  await c.getByRole('button',{name:'식비',exact:true}).click();await expect(c.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','false');await expect(page.getByTestId('monthly-total')).toContainText('20,400원');
