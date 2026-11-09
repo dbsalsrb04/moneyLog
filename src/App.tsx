@@ -37,7 +37,7 @@ export default function App() {
   const matching = useMemo(() => filterTransactions(backup?.transactions ?? [], null, categories, tags), [backup, categories, tags]);
   const filtered = useMemo(() => matching.filter(transaction => transaction.part === part), [matching, part]);
   const chartMatching = useMemo(() => excludeRent
-    ? matching.filter(({ category }) => category !== '월세/주거' && !category.startsWith('월세/주거/'))
+    ? matching.filter(({ category }) => category !== '주거/월세' && !category.startsWith('주거/월세/'))
     : matching, [matching, excludeRent]);
   const chartTransactions = useMemo(() => excludeRent
     ? chartMatching.filter(transaction => transaction.part === part)
@@ -133,7 +133,7 @@ export default function App() {
             <div className="rent-filter">
               <button type="button" className="rent-toggle" aria-label="월세 제외" aria-pressed={excludeRent} onClick={() => setExcludeRent(previous => !previous)} />
               <span>{excludeRent ? '월세 제외' : '월세 포함'}</span>
-              <HelpTip label="월세 제외 도움말">월세/주거 제외</HelpTip>
+              <HelpTip label="월세 제외 도움말">주거/월세 제외</HelpTip>
             </div>
           </div>
             <div role="tabpanel" id="panel-monthly" aria-labelledby="tab-monthly" hidden={view !== 'monthly'}>

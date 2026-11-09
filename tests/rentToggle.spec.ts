@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 
 const backup = { moneyTrackTable: [
-  { id: 1, part: 'E', category: '월세/주거', amount: 4000, memo: '임대료', tags: [], dateKey: '2026-10-01' },
-  { id: 2, part: 'E', category: '월세/주거/관리비', amount: 1000, tags: [], dateKey: '2026-10-01' },
-  { id: 3, part: 'E', category: '월세/주거관리', amount: 1500, tags: [], dateKey: '2026-10-01' },
+  { id: 1, part: 'E', category: '주거/월세', amount: 4000, memo: '임대료', tags: [], dateKey: '2026-10-01' },
+  { id: 2, part: 'E', category: '주거/월세/관리비', amount: 1000, tags: [], dateKey: '2026-10-01' },
+  { id: 3, part: 'E', category: '주거/월세관리', amount: 1500, tags: [], dateKey: '2026-10-01' },
   { id: 4, part: 'E', category: '식비', amount: 500, tags: [], dateKey: '2026-10-01' },
-  { id: 5, part: 'R', category: '월세/주거', amount: 900, tags: [], dateKey: '2026-10-01' },
+  { id: 5, part: 'R', category: '주거/월세', amount: 900, tags: [], dateKey: '2026-10-01' },
   { id: 6, part: 'R', category: '보너스', amount: 300, tags: [], dateKey: '2026-10-01' },
 ] };
 
@@ -21,7 +21,7 @@ test('월세 제외가 월별·일별·분석 그래프와 유형 비교에 적�
   await expect(monthlyTotal).toContainText('7,000원');
 
   await page.getByRole('button', { name: '월세 제외 도움말', exact: true }).hover();
-  await expect(page.getByRole('tooltip')).toHaveText('월세/주거 제외');
+  await expect(page.getByRole('tooltip')).toHaveText('주거/월세 제외');
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('월세 제외', { exact: true })).toBeVisible();
