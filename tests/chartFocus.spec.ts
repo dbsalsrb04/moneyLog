@@ -13,6 +13,10 @@ async function expectNoClickOutline(chart: Locator) {
   await expect(focused).toHaveCount(1);
   await expect(focused).not.toHaveClass(/recharts-surface/);
   await expect(focused).toHaveCSS('outline-style', 'none');
+  await expectNoChartOutline(chart);
+}
+
+async function expectNoChartOutline(chart: Locator) {
   expect(await chart.evaluate(root => [...root.querySelectorAll('*')].some(element => {
     const style = getComputedStyle(element);
     return style.outlineStyle !== 'none' && style.outlineWidth !== '0px';
@@ -43,8 +47,13 @@ test('월별·일별·비교·분석 막대를 클릭해도 내부 SVG 그룹에
   await page.getByRole('tab', { name: '분석', exact: true }).click();
   await page.getByRole('switch', { name: '그래프 모양' }).click();
   await bars.first().click();
-  await expectNoClickOutline(chart);
-  await expect(chart.locator('.chart-tooltip')).toContainText('60,000원');
+  const popup = page.getByRole('dialog', { name: '식비', exact: true });
+  const close = popup.getByRole('button', { name: '카테고리 내역 닫기' });
+  await expect(close).toBeFocused();
+  await expect(popup.getByRole('listitem')).toContainText('60,000원');
+  await expectNoChartOutline(chart);
+  await close.click();
+  await expect(popup).toHaveCount(0);
 
   // Keyboard users still get a visible chart focus indicator and arrow-key tooltips.
   await page.getByRole('button', { name: '분석 다음 연도', exact: true }).focus();
@@ -53,8 +62,9 @@ test('월별·일별·비교·분석 막대를 클릭해도 내부 SVG 그룹에
   await expect(surface).toBeFocused();
   await expect(surface).toHaveCSS('outline-style', 'solid');
   await expect(surface).toHaveCSS('outline-color', 'rgb(139, 159, 247)');
-  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowLeft');
   await expect(chart.locator('.chart-tooltip')).toBeVisible();
   await bars.first().click();
-  await expectNoClickOutline(chart);
+  await expect(close).toBeFocused();
+  await expectNoChartOutline(chart);
 });

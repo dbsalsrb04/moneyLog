@@ -12,6 +12,7 @@ import SearchDialog from './components/SearchDialog';
 import SettingsDialog from './components/SettingsDialog';
 import ViewTabs, { type DashboardView } from './components/ViewTabs';
 import CategoryAnalysis from './components/CategoryAnalysis';
+import HelpTip from './components/HelpTip';
 
 export default function App() {
   const [backup, setBackup] = useState<Backup | null>(null);
@@ -28,18 +29,25 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [view, setView] = useState<DashboardView>('monthly');
+  const [excludeRent, setExcludeRent] = useState(false);
   const uploadVersion = useRef(0);
   const partLabel = TRANSACTION_PARTS.find(item => item.value === part)!.label;
 
   const options = useMemo(() => getFilterOptions(backup?.transactions ?? [], part), [backup, part]);
   const matching = useMemo(() => filterTransactions(backup?.transactions ?? [], null, categories, tags), [backup, categories, tags]);
   const filtered = useMemo(() => matching.filter(transaction => transaction.part === part), [matching, part]);
-  const monthly = useMemo(() => backup ? aggregateMonthly(filtered, backup.latestMonth, period) : [], [backup, filtered, period]);
+  const chartMatching = useMemo(() => excludeRent
+    ? matching.filter(({ category }) => category !== '월세/주거' && !category.startsWith('월세/주거/'))
+    : matching, [matching, excludeRent]);
+  const chartTransactions = useMemo(() => excludeRent
+    ? chartMatching.filter(transaction => transaction.part === part)
+    : filtered, [chartMatching, excludeRent, filtered, part]);
+  const monthly = useMemo(() => backup ? aggregateMonthly(chartTransactions, backup.latestMonth, period) : [], [backup, chartTransactions, period]);
   const comparison = useMemo(() => backup && comparisonParts ? {
-    points: aggregateMonthlyByPart(matching, backup.latestMonth, period),
+    points: aggregateMonthlyByPart(chartMatching, backup.latestMonth, period),
     parts: comparisonParts,
-  } : undefined, [backup, matching, period, comparisonParts]);
-  const daily = useMemo(() => month ? aggregateDaily(filtered, month) : [], [filtered, month]);
+  } : undefined, [backup, chartMatching, period, comparisonParts]);
+  const daily = useMemo(() => month ? aggregateDaily(chartTransactions, month) : [], [chartTransactions, month]);
   const months = useMemo(() => backup ? monthRange(backup.firstMonth < monthly[0].key ? backup.firstMonth : monthly[0].key, backup.latestMonth).reverse() : [], [backup, monthly]);
   const total = (points: typeof daily) => points.reduce((sum, point) => sum + point.amount, 0);
 
@@ -120,7 +128,14 @@ export default function App() {
       </div>
       <div className="dashboard">
         <div className="charts-column"><section className="card view-card" aria-label="거래 조회">
-          <ViewTabs value={view} onChange={setView} />
+          <div className="view-header">
+            <ViewTabs value={view} onChange={setView} />
+            <div className="rent-filter">
+              <button type="button" className="rent-toggle" aria-label="월세 제외" aria-pressed={excludeRent} onClick={() => setExcludeRent(previous => !previous)} />
+              <span>{excludeRent ? '월세 제외' : '월세 포함'}</span>
+              <HelpTip label="월세 제외 도움말">월세/주거 제외</HelpTip>
+            </div>
+          </div>
             <div role="tabpanel" id="panel-monthly" aria-labelledby="tab-monthly" hidden={view !== 'monthly'}>
               <section className="chart-card monthly-card" aria-label={comparison ? '월별 유형 비교' : `월별 ${partLabel}`}>
                 <div className="chart-header">
@@ -176,7 +191,7 @@ export default function App() {
               />
             </div>
             <div role="tabpanel" id="panel-analysis" aria-labelledby="tab-analysis" hidden={view !== 'analysis'}>
-              <CategoryAnalysis key={`${datasetVersion}-${month}`} transactions={filtered} month={month} partLabel={partLabel} active={view === 'analysis'} />
+              <CategoryAnalysis key={`${datasetVersion}-${month}`} transactions={chartTransactions} month={month} partLabel={partLabel} active={view === 'analysis'} />
             </div>
         </section></div>
         <aside>

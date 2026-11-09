@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartPie } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { aggregateCategoryShares, formatPercentage, groupCategoryLegend, type CategoryShare } from '../analysis';
+import { aggregateCategoryShares, formatPercentage, groupCategoryLegend, type CategoryBreakdown, type CategoryShare } from '../analysis';
 import { useSettings } from '../settings';
 import { won, type Transaction } from '../data';
 import AnalysisMonthPicker from './AnalysisMonthPicker';
 import HelpTip from './HelpTip';
 import OtherCategoriesPopup from './OtherCategoriesPopup';
 import AnalysisPieChart from './AnalysisPieChart';
+import CategoryTransactionsPopup, { type AnalysisPopupPoint } from './CategoryTransactionsPopup';
 
 type Props = { transactions: Transaction[]; month: string; partLabel: string; active: boolean };
+type OpenCategory = { row: CategoryBreakdown & { key: string }; point: AnalysisPopupPoint };
 const COLORS = ['#5474e8', '#8495ed', '#57a5b4', '#7cbb95', '#d2ad67', '#ce8f9f', '#9b85c7', '#84adb5', '#b5b87b', '#ab77ad'];
 
 export default function CategoryAnalysis({ transactions, month, partLabel, active }: Props) {
@@ -21,21 +23,33 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
     root.current?.querySelectorAll<SVGElement>('.analysis-category-shape').forEach(element => element.classList.toggle('is-hovered', key !== null && element.dataset.categoryKey === key));
     root.current?.querySelectorAll<HTMLElement>('[data-legend-key]').forEach(element => element.classList.toggle('analysis-legend-hovered', key !== null && element.dataset.legendKey === key));
   }
-  const [otherPoint, setOtherPoint] = useState<{ x: number; y: number } | null>(null);
-  const otherLegend = useRef<HTMLTableRowElement>(null);
+  const [openCategory, setOpenCategory] = useState<OpenCategory | null>(null);
   const { analysisChartType, setAnalysisChartType, analysisCategoryGrouping, setAnalysisCategoryGrouping } = useSettings();
-  const allRows = useMemo(() => aggregateCategoryShares(transactions.filter(transaction => transaction.dateKey.slice(0, 7) === selectedMonth), analysisCategoryGrouping), [transactions, selectedMonth, analysisCategoryGrouping]);
+  const monthTransactions = useMemo(() => transactions.filter(transaction => transaction.dateKey.slice(0, 7) === selectedMonth), [transactions, selectedMonth]);
+  const allRows = useMemo(() => aggregateCategoryShares(monthTransactions, analysisCategoryGrouping), [monthTransactions, analysisCategoryGrouping]);
   const rows = useMemo(() => groupCategoryLegend(allRows), [allRows]);
   const otherRows = useMemo(() => {
     const visible = new Set(rows.filter(row => !row.isOther).map(row => row.category));
     return allRows.filter(row => !visible.has(row.category));
   }, [allRows, rows]);
-  useEffect(() => { setOtherPoint(null); }, [allRows]);
-  useEffect(() => { if (!active) setOtherPoint(null); }, [active]);
+  useEffect(() => { setOpenCategory(null); }, [allRows, active, analysisChartType]);
   const total = rows.reduce((sum, row) => sum + row.amount, 0);
   const hasNegative = rows.some(row => row.amount < 0);
   const pie = analysisChartType === 'pie' && !hasNegative;
   const chartRows = useMemo(() => rows.map((row, index) => ({ ...row, key: row.isOther ? 'other' : `category:${row.category}`, color: row.isOther ? '#9aa2af' : COLORS[index % COLORS.length] })), [rows]);
+  function openChartRow(index: number, point: AnalysisPopupPoint) {
+    const row = chartRows[index];
+    if (row) setOpenCategory({ row, point });
+  }
+
+  function closeCategory() {
+    setOpenCategory(previous => previous === openCategory ? null : previous);
+  }
+
+  function focusLegend() {
+    const legend = root.current?.querySelector<HTMLElement>(`[data-legend-key="${CSS.escape(openCategory?.row.key ?? '')}"]`);
+    legend?.focus({ preventScroll: true });
+  }
   const tooltip = ({ active: visible, payload }: { active?: boolean; payload?: readonly { payload?: unknown }[] }) => {
     const row = payload?.[0]?.payload as CategoryShare | undefined;
     return visible && row ? <div className="chart-tooltip"><span>{row.category}</span><strong>{won(row.amount)} · {formatPercentage(row.percentage)}</strong></div> : null;
@@ -57,22 +71,40 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
     {total > 0 ? <div className={`analysis-visual${pie ? ' analysis-visual-pie' : ''}`}>
       <div className="analysis-chart-scroll">
         <div className="chart analysis-chart" role="img" aria-label={`카테고리별 ${partLabel} 비중 ${pie ? '파이차트' : '막대그래프'}`} onMouseLeave={() => highlightCategory(null)}>
-          {active && (pie ? <AnalysisPieChart rows={chartRows} onHighlight={highlightCategory} onOtherClick={setOtherPoint} tooltip={tooltip} /> : <ResponsiveContainer width="100%" height="100%"><BarChart data={chartRows} layout="vertical" margin={{ top: 10, right: 54, left: 0, bottom: 8 }} accessibilityLayer>
+          {active && (pie ? <AnalysisPieChart rows={chartRows} onHighlight={highlightCategory} onCategoryClick={openChartRow} tooltip={tooltip} /> : <ResponsiveContainer width="100%" height="100%"><BarChart data={chartRows} layout="vertical" margin={{ top: 10, right: 54, left: 0, bottom: 8 }} accessibilityLayer>
             <CartesianGrid strokeDasharray="3 5" horizontal={false} stroke="#e9edf3" />
             <XAxis type="number" domain={[Math.min(0, ...rows.map(row => row.percentage ?? 0)), Math.max(100, ...rows.map(row => row.percentage ?? 0))]} tickFormatter={value => `${value}%`} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#8490a3' }} />
             <YAxis type="category" dataKey="category" width={112} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#66748b' }} tickFormatter={value => String(value).length > 13 ? `${String(value).slice(0, 12)}…` : String(value)} />
             <Tooltip content={tooltip} cursor={{ fill: '#f0f4ff' }} />
-            <Bar dataKey="percentage" maxBarSize={20} radius={[0, 3, 3, 0]} isAnimationActive={false} onMouseEnter={(_, index) => highlightCategory(chartRows[index]?.key ?? null)} onClick={(_, index, event) => { if (chartRows[index]?.isOther) setOtherPoint({ x: event.clientX, y: event.clientY }); }}>{chartRows.map(row => <Cell key={row.key} fill={row.color} data-category-key={row.key} style={{ cursor: row.isOther ? 'pointer' : 'default' }} className="analysis-category-shape" />)}<LabelList dataKey="percentage" position="right" formatter={value => formatPercentage(Number(value))} style={{ fontSize: 10, fill: '#66748b' }} /></Bar>
+            <Bar dataKey="percentage" maxBarSize={20} radius={[0, 3, 3, 0]} isAnimationActive={false} onMouseEnter={(_, index) => highlightCategory(chartRows[index]?.key ?? null)} onClick={(_, index, event) => openChartRow(index, { x: event.clientX, y: event.clientY })}>{chartRows.map(row => <Cell key={row.key} fill={row.color} data-category-key={row.key} className="analysis-category-shape" />)}<LabelList dataKey="percentage" position="right" formatter={value => formatPercentage(Number(value))} style={{ fontSize: 10, fill: '#66748b' }} /></Bar>
           </BarChart></ResponsiveContainer>)}
         </div>
       </div>
-      <div className="analysis-table-scroll"><table className="analysis-table"><caption className="sr-only">카테고리별 {partLabel} 금액과 비중</caption><thead><tr><th>카테고리</th><th>금액</th><th>비중</th></tr></thead><tbody>{chartRows.map(row => <tr key={row.key} ref={row.isOther ? otherLegend : undefined} data-other={row.isOther} tabIndex={0} aria-haspopup={row.isOther ? 'dialog' : undefined} data-legend-key={row.key} onMouseEnter={() => highlightCategory(row.key)} onMouseLeave={() => highlightCategory(null)} onFocus={() => highlightCategory(row.key)} onBlur={() => highlightCategory(null)} onClick={event => { if (row.isOther) setOtherPoint({ x: event.clientX, y: event.clientY }); }} onKeyDown={event => {
-        if (!row.isOther || !['Enter', ' '].includes(event.key)) return;
+      <div className="analysis-table-scroll"><table className="analysis-table"><caption className="sr-only">카테고리별 {partLabel} 금액과 비중</caption><thead><tr><th>카테고리</th><th>금액</th><th>비중</th></tr></thead><tbody>{chartRows.map((row, index) => <tr key={row.key} data-other={row.isOther} tabIndex={0} aria-haspopup="dialog" data-legend-key={row.key} onMouseEnter={() => highlightCategory(row.key)} onMouseLeave={() => highlightCategory(null)} onFocus={() => highlightCategory(row.key)} onBlur={() => highlightCategory(null)} onClick={event => openChartRow(index, { x: event.clientX, y: event.clientY })} onKeyDown={event => {
+        if (!['Enter', ' '].includes(event.key)) return;
         event.preventDefault();
         const bounds = event.currentTarget.getBoundingClientRect();
-        setOtherPoint({ x: bounds.left, y: bounds.bottom });
+        openChartRow(index, { x: bounds.left, y: bounds.bottom });
       }}><th scope="row"><i style={{ background: row.color }} />{row.category}</th><td>{won(row.amount)}</td><td>{formatPercentage(row.percentage)}</td></tr>)}</tbody></table></div>
     </div> : <p className="analysis-empty">{rows.length ? '비중을 표시할 양수 합계가 없습니다.' : '선택한 월과 필터에 해당하는 내역이 없습니다.'}</p>}
-    {active && otherPoint && <OtherCategoriesPopup rows={otherRows} point={otherPoint} partLabel={partLabel} onClose={() => setOtherPoint(null)} restoreFocus={() => otherLegend.current?.focus()} />}
+    {active && openCategory && (openCategory.row.isOther ? <OtherCategoriesPopup
+      rows={otherRows}
+      point={openCategory.point}
+      partLabel={partLabel}
+      transactions={monthTransactions}
+      grouping={analysisCategoryGrouping}
+      month={selectedMonth}
+      onClose={closeCategory}
+      restoreFocus={focusLegend}
+    /> : <CategoryTransactionsPopup
+      key={openCategory.row.key}
+      category={openCategory.row.category}
+      point={openCategory.point}
+      transactions={monthTransactions}
+      grouping={analysisCategoryGrouping}
+      month={selectedMonth}
+      onClose={closeCategory}
+      restoreFocus={focusLegend}
+    />)}
   </section>;
 }

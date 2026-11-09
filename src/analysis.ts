@@ -4,10 +4,14 @@ export type CategoryGrouping = 'parent' | 'full';
 export type CategoryShare = { category: string; amount: number; percentage: number | null };
 export type CategoryBreakdown = CategoryShare & { isOther: boolean };
 
+export function analysisCategory(category: string, grouping: CategoryGrouping): string {
+  return (grouping === 'parent' ? category.split('/')[0] : category) || '미분류';
+}
+
 export function aggregateCategoryShares(transactions: Transaction[], grouping: CategoryGrouping): CategoryShare[] {
   const amounts = new Map<string, number>();
   for (const transaction of transactions) {
-    const category = (grouping === 'parent' ? transaction.category.split('/')[0] : transaction.category) || '미분류';
+    const category = analysisCategory(transaction.category, grouping);
     amounts.set(category, (amounts.get(category) ?? 0) + transaction.amount);
   }
   const total = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);

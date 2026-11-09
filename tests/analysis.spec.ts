@@ -266,3 +266,82 @@ test('그 외 팝업의 각 열 너비를 절반으로 줄이고 긴 금액과 �
     expect(await popup.evaluate(root => [...root.querySelectorAll('table, th, td')].every(element => element.scrollWidth <= element.clientWidth + 1))).toBe(true);
   }
 });
+
+test('파이와 막대에서 선택한 카테고리의 해당 월 거래를 날짜별로 표시한다', async ({ page }) => {
+  await page.goto('/');
+  await upload(page, { moneyTrackTable: [
+    ...backup.moneyTrackTable,
+    { ...backup.moneyTrackTable[0], id: 7, dateKey: '2026-09-01', memo: '이전 달 거래' },
+    { ...backup.moneyTrackTable[0], id: 8, part: 'R', memo: '다른 유형 거래' },
+  ] });
+  await tab(page, '분석').click();
+
+  await page.locator('.analysis-category-shape[data-category-key="category:식비"]').click();
+  const parent = page.getByRole('dialog', { name: '식비', exact: true });
+  await expect(parent.getByRole('heading', { name: '식비', exact: true })).toBeVisible();
+  await expect(parent.locator('time')).toHaveText(['2026-10-01', '2026-10-02']);
+  await expect(parent.getByRole('listitem')).toHaveText(['300원간식#식비 #간식', '100원커피#음료', '100원식사#식비']);
+  await expect(parent.getByRole('listitem').first()).toHaveCSS('animation-duration', '0.05s');
+  await expect(parent.getByRole('listitem').last()).toHaveCSS('animation-delay', '0.04s');
+  await page.keyboard.press('Escape');
+  await expect(parent).toHaveCount(0);
+
+  await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();
+  await page.getByRole('switch', { name: '그래프 모양' }).click();
+  await page.locator('.analysis-category-shape[data-category-key="category:식비/편의점"]').click();
+  const child = page.getByRole('dialog', { name: '식비/편의점', exact: true });
+  await expect(child.locator('time')).toHaveText('2026-10-01');
+  await expect(child.getByRole('listitem')).toHaveText('300원간식#식비 #간식');
+  await child.getByRole('button', { name: '카테고리 내역 닫기' }).click();
+  const legend = page.locator('.analysis-table tr[data-legend-key="category:식비/편의점"]');
+  await expect(legend).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(child).toBeVisible();
+  await tab(page, '월별').click();
+  await expect(child).toHaveCount(0);
+});
+
+test('그 외의 개별 내역은 목록 오른쪽에 열리고 좁은 화면에서도 벗어나지 않는다', async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 1000 });
+  await page.goto('/');
+  const base = backup.moneyTrackTable[0];
+  await upload(page, { moneyTrackTable: [
+    { ...base, amount: 10000 },
+    { ...base, id: 2, category: '교통비/지쿠', amount: 300, memo: '출근', tags: ['이동'], dateKey: '2026-10-03' },
+    { ...base, id: 3, category: '교통비/지쿠', amount: 100, memo: '귀가', tags: [], dateKey: '2026-10-01' },
+    { ...base, id: 4, category: '여가/PC방', amount: 100 },
+  ] });
+  await tab(page, '분석').click();
+  await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();
+  const other = page.locator('.analysis-table tr[data-other="true"]');
+  const legend = (await other.boundingBox())!;
+  await other.click({ position: { x: legend.width - 5, y: legend.height / 2 } });
+  const popup = page.getByRole('dialog', { name: '그 외 카테고리', exact: true });
+  const trigger = popup.getByRole('button', { name: '교통비/지쿠', exact: true });
+  await trigger.click();
+  const details = page.getByRole('dialog', { name: '교통비/지쿠', exact: true });
+  await expect(details.locator('time')).toHaveText(['2026-10-01', '2026-10-03']);
+  await expect(details.getByRole('listitem')).toHaveText(['100원귀가—', '300원출근#이동']);
+  const parentBounds = (await popup.boundingBox())!;
+  const detailBounds = (await details.boundingBox())!;
+  expect(detailBounds.x).toBeCloseTo(parentBounds.x + parentBounds.width + 8, 0);
+  expect(detailBounds.x + detailBounds.width).toBeLessThanOrEqual(1180);
+
+  await page.keyboard.press('Escape');
+  await expect(details).toHaveCount(0);
+  await expect(popup).toBeVisible();
+  await expect(trigger).toBeFocused();
+  await page.keyboard.press('Enter');
+  await popup.getByRole('button', { name: '여가/PC방', exact: true }).click();
+  await expect(details).toHaveCount(0);
+  const nextDetails = page.getByRole('dialog', { name: '여가/PC방', exact: true });
+  await expect(nextDetails).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => {
+    const bounds = (await nextDetails.boundingBox())!;
+    return bounds.x >= 0 && bounds.x + bounds.width <= 390 && bounds.y >= 0 && bounds.y + bounds.height <= 844;
+  }).toBe(true);
+  await page.mouse.click(0, 0);
+  await expect(nextDetails).toHaveCount(0);
+  await expect(popup).toHaveCount(0);
+});

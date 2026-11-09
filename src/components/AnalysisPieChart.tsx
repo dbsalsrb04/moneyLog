@@ -2,15 +2,16 @@ import { useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'r
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { layoutPieLabels, PIE_LABEL_FONT_SIZE, PIE_LABEL_LINE_HEIGHT } from '../pieLabels';
 import type { CategoryBreakdown } from '../analysis';
+import type { AnalysisPopupPoint } from './CategoryTransactionsPopup';
 
 type Props = {
   rows: (CategoryBreakdown & { key: string; color: string })[];
   onHighlight: (key: string | null) => void;
-  onOtherClick: (point: { x: number; y: number }) => void;
+  onCategoryClick: (index: number, point: AnalysisPopupPoint) => void;
   tooltip: (props: { active?: boolean; payload?: readonly { payload?: unknown }[] }) => ReactElement | null;
 };
 
-export default function AnalysisPieChart({ rows, onHighlight, onOtherClick, tooltip }: Props) {
+export default function AnalysisPieChart({ rows, onHighlight, onCategoryClick, tooltip }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   useLayoutEffect(() => {
@@ -33,7 +34,7 @@ export default function AnalysisPieChart({ rows, onHighlight, onOtherClick, tool
     {layout.radius > 0 && <ResponsiveContainer width="100%" height={layout.height}><PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
       <Pie data={rows} dataKey="amount" nameKey="category" cx={layout.cx} cy={layout.cy} outerRadius={layout.radius} isAnimationActive={false}
         onMouseEnter={(_, index) => onHighlight(rows[index]?.key ?? null)}
-        onClick={(_, index, event) => { if (rows[index]?.isOther) onOtherClick({ x: event.clientX, y: event.clientY }); }}
+        onClick={(_, index, event) => onCategoryClick(index, { x: event.clientX, y: event.clientY })}
         labelLine={false} label={({ index }) => {
           const label = layout.labels[index];
           if (!label) return null;
@@ -45,7 +46,7 @@ export default function AnalysisPieChart({ rows, onHighlight, onOtherClick, tool
             <text className="pie-percentage-label" x={label.percentage.x} y={label.percentage.y} textAnchor="middle" dominantBaseline="central" fill="#fff" fontSize={PIE_LABEL_FONT_SIZE}>{label.percentage.text}</text>
           </g>;
         }}>
-        {rows.map(row => <Cell key={row.key} fill={row.color} data-category-key={row.key} style={{ cursor: row.isOther ? 'pointer' : 'default' }} className="analysis-category-shape" />)}
+        {rows.map(row => <Cell key={row.key} fill={row.color} data-category-key={row.key} className="analysis-category-shape" />)}
       </Pie>
       <Tooltip content={tooltip} />
     </PieChart></ResponsiveContainer>}
