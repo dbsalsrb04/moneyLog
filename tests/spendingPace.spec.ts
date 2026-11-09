@@ -78,6 +78,27 @@ test('파일 영역을 오른쪽 열에 맞추고 선택 월의 오늘까지 누
   await expect(ticks).toHaveCount(31);
 });
 
+test('누적 지출 그래프는 마우스로 클릭할 때 테두리가 없고 키보드 초점은 표시한다', async ({ page }) => {
+  const pace = await openBackup(page);
+  const surface = pace.locator('.recharts-surface');
+  await surface.click({ position: { x: 80, y: 24 } });
+  const focused = pace.locator(':focus');
+  await expect(focused).toHaveCSS('outline-style', 'none');
+
+  const point = await pace.locator('.recharts-line-curve').last().evaluate((line: SVGPathElement) => {
+    const pointOnLine = line.getPointAtLength(line.getTotalLength() / 2).matrixTransform(line.getScreenCTM()!);
+    return { x: pointOnLine.x, y: pointOnLine.y };
+  });
+  await page.mouse.click(point.x, point.y);
+  await expect(focused).toHaveCSS('outline-style', 'none');
+
+  await page.getByRole('button', { name: '설정', exact: true }).focus();
+  await page.keyboard.press('Tab');
+  await expect(surface).toBeFocused();
+  await expect(surface).toHaveCSS('outline-color', 'rgb(139, 159, 247)');
+  await expect(surface).toHaveCSS('outline-style', 'solid');
+});
+
 test('모바일에서 모든 날짜를 유지하며 상단 영역이 화면 너비를 넘지 않는다', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const pace = await openBackup(page);
