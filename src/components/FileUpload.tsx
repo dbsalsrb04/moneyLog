@@ -62,7 +62,6 @@ export default function FileUpload({ expanded = false, fileName, summary, loadin
     <div className="upload-icon"><FileJson size={25} /></div>
     <div className="upload-copy">
       <h2>{dragging ? 'JSON 파일 놓기' : fileName || 'JSON 백업 · 드래그 앤 드롭'}</h2>
-      {summary && <p><CheckCircle2 size={13} />{summary}</p>}
       {pickerError && <p className="file-picker-error" role="alert">{pickerError}</p>}
     </div>
     <input
@@ -81,5 +80,6 @@ export default function FileUpload({ expanded = false, fileName, summary, loadin
     <button className="primary" onClick={chooseFile} disabled={loading || picking}>
       <Upload size={16} />{loading ? '파일 읽는 중…' : fileName ? '다른 파일 선택' : expanded ? '파일 선택' : 'JSON 파일 선택'}<ArrowUpRight size={16} />
     </button>
+    {summary && <p className="upload-summary"><CheckCircle2 size={13} />{summary}</p>}
   </section>;
 }

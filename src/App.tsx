@@ -7,6 +7,7 @@ import {
 import FileUpload from './components/FileUpload';
 import FilterPanel from './components/FilterPanel';
 import SpendingChart from './components/SpendingChart';
+import SpendingPace from './components/SpendingPace';
 import DailyDetails from './components/DailyDetails';
 import SearchDialog from './components/SearchDialog';
 import SettingsDialog from './components/SettingsDialog';
@@ -106,13 +107,16 @@ export default function App() {
       <button className="settings-trigger" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}><Settings size={17} />설정</button>
     </header>
     <main className={backup ? undefined : 'initial-screen'}>
-      <FileUpload
-        expanded={!backup}
-        fileName={fileName}
-        loading={loading}
-        onFiles={upload}
-        summary={backup ? `${backup.transactions.length.toLocaleString('ko-KR')}개 거래 · ${backup.firstMonth.replace('-', '.')} – ${backup.latestMonth.replace('-', '.')}` : undefined}
-      />
+      <div className={backup ? 'dashboard loaded-overview' : 'upload-only'}>
+        {backup && <SpendingPace key={`${datasetVersion}-${month}`} month={month} transactions={chartMatching} />}
+        <FileUpload
+          expanded={!backup}
+          fileName={fileName}
+          loading={loading}
+          onFiles={upload}
+          summary={backup ? `${backup.transactions.length.toLocaleString('ko-KR')}개 거래 · ${backup.firstMonth.replace('-', '.')} – ${backup.latestMonth.replace('-', '.')}` : undefined}
+        />
+      </div>
       {error && <div className="error" role="alert">{error}{backup && ' 기존 분석 데이터는 유지됩니다.'}</div>}
       {backup && <>
       <div className="section-heading">

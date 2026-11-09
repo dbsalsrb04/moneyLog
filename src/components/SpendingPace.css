@@ -1,0 +1,80 @@
+.spending-pace {
+  --pace-sweep-duration: 900ms;
+  min-width: 0;
+  padding: 14px 16px 12px;
+}
+
+.spending-pace-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+.spending-pace-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  color: #65738b;
+  font-size: 11px;
+}
+
+.spending-pace-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.spending-pace-legend i {
+  width: 13px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.spending-pace-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.spending-pace-canvas {
+  min-width: 560px;
+  height: 174px;
+}
+
+.spending-pace-summary {
+  margin: 3px 0 0;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 650;
+  color: #3858c7;
+}
+
+.spending-pace-sweep .recharts-line-curve,
+.spending-pace-fill .recharts-area-area {
+  animation: spending-pace-draw var(--pace-sweep-duration) ease-out both;
+}
+
+.spending-pace-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: spending-pace-pulse 800ms var(--pace-sweep-duration) ease-out forwards;
+}
+
+@keyframes spending-pace-draw {
+  from { clip-path: inset(-4px 100% -4px -4px) fill-box; }
+  to { clip-path: inset(-4px -4px -4px -4px) fill-box; }
+}
+
+@keyframes spending-pace-pulse {
+  from { opacity: .9; transform: scale(1); }
+  to { opacity: 0; transform: scale(4); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spending-pace-sweep .recharts-line-curve,
+  .spending-pace-fill .recharts-area-area { animation: none; }
+  .spending-pace-pulse { display: none; }
+}

@@ -7,6 +7,43 @@
 .upload-card-expanded .primary{width:auto;min-width:168px;margin-top:0}
 @media(max-width:760px){.app-shell>main.initial-screen{min-height:calc(100svh - 60px)}}
 
+.upload-only { display: contents; }
+.loaded-overview {
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+.loaded-overview .upload-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: center;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+}
+.loaded-overview .upload-icon { width: 36px; height: 36px; }
+.loaded-overview .upload-icon svg { width: 20px; height: 20px; }
+.loaded-overview .upload-copy { width: auto; }
+.loaded-overview .upload-copy h2 { margin: 0; }
+.loaded-overview .upload-card .primary {
+  grid-column: 1 / -1;
+  justify-self: start;
+  width: auto;
+  margin: 0;
+}
+.upload-summary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  color: #65738b;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.upload-summary svg { flex: none; }
+
 .detail-card{padding:24px;min-width:0}
 .day-navigation{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;align-items:center;gap:12px;padding:20px 0 18px;border-bottom:1px solid #e9edf3}
 .day-arrow{display:grid;place-items:center;width:36px;height:36px;border:1px solid #dce3f0;border-radius:4px;background:#fff;color:#536bce;font-size:20px;line-height:1}
