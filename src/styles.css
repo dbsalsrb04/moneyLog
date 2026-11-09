@@ -197,6 +197,10 @@
 .other-categories-table tbody tr{cursor:pointer}
 .other-categories-table tbody tr:hover,.other-categories-table tbody tr:focus-within,.other-categories-table tr:has(button[aria-expanded=true]){background:#f3f6fd}
 .other-categories-table tbody button{width:100%;padding:0;border:0;background:none;color:inherit;text-align:left;overflow-wrap:anywhere}
+.monthly-transactions-popup{width:min(228px,calc(100vw - 16px))}
+.monthly-transactions-table th:first-child{width:52%}
+.monthly-transactions-table th:nth-child(2){width:48%}
+.monthly-transactions-table td{text-align:right}
 .category-transactions-popup{width:min(410px,calc(100vw - 16px))}
 .category-transactions-popup:popover-open{display:flex;flex-direction:column}
 .category-transactions-header{display:grid;grid-template-columns:24px minmax(0,1fr) 24px}

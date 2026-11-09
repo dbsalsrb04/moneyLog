@@ -8,15 +8,6 @@ const backup = { moneyTrackTable: [
   { id: 4, part: 'R', category: '수입', amount: 90000, memo: '급여', tags: [], dateKey: '2026-10-01' },
 ] };
 
-async function expectNoClickOutline(chart: Locator) {
-  // Click a real bar: the focus target is an internal SVG group, not the root SVG.
-  const focused = chart.locator(':focus');
-  await expect(focused).toHaveCount(1);
-  await expect(focused).not.toHaveClass(/recharts-surface/);
-  await expect(focused).toHaveCSS('outline-style', 'none');
-  await expectNoChartOutline(chart);
-}
-
 async function expectNoChartOutline(chart: Locator) {
   expect(await chart.evaluate(root => [...root.querySelectorAll('*')].some(element => {
     const style = getComputedStyle(element);
@@ -32,18 +23,25 @@ test('월별·일별·비교·분석 막대를 클릭해도 내부 SVG 그룹에
   const chart = page.getByRole('tabpanel').locator('.chart');
   const bars = chart.locator('.recharts-bar-rectangle path');
   await bars.first().click();
-  await expectNoClickOutline(chart);
+  await expect(page.getByRole('button', { name: '월별 내역 닫기' })).toBeFocused();
+  await expectNoChartOutline(chart);
+  await page.keyboard.press('Escape');
   await page.getByRole('tab', { name: '일별', exact: true }).click();
   await expect(monthButton(page, '2026-09')).toHaveAttribute('aria-pressed', 'true');
   await bars.first().click();
-  await expectNoClickOutline(chart);
-  await expect(chart.locator('.chart-tooltip')).toContainText('10,000원');
+  const dailyPopup = page.getByRole('dialog', { name: '2026-09-01', exact: true });
+  await expect(dailyPopup.getByRole('button', { name: '거래 내역 닫기' })).toBeFocused();
+  await expect(dailyPopup.getByRole('listitem')).toContainText('10,000원');
+  await expectNoChartOutline(chart);
+  await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: '월별', exact: true }).click();
   await page.getByRole('button', { name: '다른 유형과 비교하기' }).click();
   await page.getByRole('group', { name: '월별 비교 유형' }).getByRole('button', { name: '수입', exact: true }).click();
   await bars.last().click();
-  await expectNoClickOutline(chart);
+  await expect(page.getByRole('button', { name: '월별 내역 닫기' })).toBeFocused();
+  await expectNoChartOutline(chart);
+  await page.keyboard.press('Escape');
 
   await page.getByRole('tab', { name: '분석', exact: true }).click();
   await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();

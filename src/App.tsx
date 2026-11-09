@@ -167,7 +167,7 @@ export default function App() {
                   <span className="comparison-series-label"><i style={{ background: TRANSACTION_COLORS[value] }} />{TRANSACTION_PARTS.find(item => item.value === value)!.label}</span>
                   <strong>{won(comparison.points.reduce((sum, point) => sum + point[value], 0))}</strong>
                 </div>)}</div> : <div className="chart-total" data-testid="monthly-total">{won(total(monthly))}<span>선택 기간 {partLabel}</span></div>}
-                <SpendingChart points={monthly} partLabel={partLabel} selectedMonth={month} onSelect={setMonth} comparison={comparison} active={view === 'monthly'} />
+                <SpendingChart points={monthly} partLabel={partLabel} transactions={comparison ? chartMatching : chartTransactions} selectedMonth={month} onSelect={setMonth} comparison={comparison} active={view === 'monthly'} />
               </section>
             </div>
             <div role="tabpanel" id="panel-daily" aria-labelledby="tab-daily" hidden={view !== 'daily'}>
@@ -177,7 +177,7 @@ export default function App() {
                 </div>
                 <AnalysisMonthPicker selected={month} onChange={setMonth} label="일별" allowAllYears />
                 <div className="chart-total" data-testid="daily-total">{won(total(daily))}<span>{month.replace('-', '년 ')}월 {partLabel}</span></div>
-                <SpendingChart points={daily} partLabel={partLabel} daily active={view === 'daily'} />
+                <SpendingChart points={daily} partLabel={partLabel} transactions={chartTransactions} daily active={view === 'daily'} />
               </section>
             </div>
             <div role="tabpanel" id="panel-details" aria-labelledby="tab-details" hidden={view !== 'details'}>
