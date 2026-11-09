@@ -75,24 +75,20 @@ export default function SpendingPace({ transactions, month }: { transactions: Tr
                 <div className="tooltip-series"><span>{currentLabel}</span><strong style={{ color: CURRENT_COLOR }}>{point.current === null ? '—' : won(point.current)}</strong></div>
               </div>;
             }} />
-            <Area key={`fill-${throughDay}`} className="spending-pace-fill" dataKey="current" baseValue="dataMin" fill={`url(#${gradientId})`} fillOpacity={1} stroke="none" tooltipType="none" activeDot={false} isAnimationActive={false} />
+            <Area className="spending-pace-fill" dataKey="current" baseValue="dataMin" fill={`url(#${gradientId})`} fillOpacity={1} stroke="none" tooltipType="none" activeDot={false} isAnimationActive={false} />
             <Line dataKey="previous" stroke={PREVIOUS_COLOR} strokeWidth={2} dot={false} activeDot={false} isAnimationActive={false} />
-            <Line dataKey="current" stroke="#b8c9ff" strokeWidth={3} strokeLinecap="round" dot={false} activeDot={false} isAnimationActive={false} />
             <Line
-              key={`sweep-${throughDay}`}
-              className="spending-pace-sweep"
               dataKey="current"
               stroke={CURRENT_COLOR}
               strokeWidth={3}
               strokeLinecap="round"
-              tooltipType="none"
               activeDot={false}
               isAnimationActive={false}
               dot={({ cx, cy, index }) => {
                 if (index !== throughDay - 1 || cx == null || cy == null) return <g />;
                 return <g transform={`translate(${cx} ${cy})`} data-testid="spending-pace-endpoint" data-day={throughDay}>
                   <circle className="spending-pace-pulse" r={5} fill={`url(#${pulseId})`} />
-                  <circle r={5} fill={CURRENT_COLOR} stroke="#fff" strokeWidth={1.5} />
+                  <circle r={5} fill={CURRENT_COLOR} />
                 </g>;
               }}
             />

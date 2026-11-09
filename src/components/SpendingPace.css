@@ -51,22 +51,11 @@
   color: #3858c7;
 }
 
-.spending-pace-sweep .recharts-line-curve,
-.spending-pace-fill .recharts-area-area {
-  animation: spending-pace-draw var(--pace-cycle-duration) ease-out infinite;
-}
-
 .spending-pace-pulse {
   transform-box: fill-box;
   transform-origin: center;
   opacity: 0;
   animation: spending-pace-pulse var(--pace-cycle-duration) ease-out infinite;
-}
-
-@keyframes spending-pace-draw {
-  0% { clip-path: inset(-4px 100% -4px -4px) fill-box; opacity: .35; }
-  55% { clip-path: inset(-4px -4px -4px -4px) fill-box; opacity: 1; }
-  100% { clip-path: inset(-4px -4px -4px -4px) fill-box; opacity: 0; }
 }
 
 @keyframes spending-pace-pulse {
@@ -76,7 +65,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .spending-pace-sweep .recharts-line-curve,
-  .spending-pace-fill .recharts-area-area { animation: none; }
   .spending-pace-pulse { display: none; }
 }

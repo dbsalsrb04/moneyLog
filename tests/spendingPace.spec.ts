@@ -57,11 +57,13 @@ test('파일 영역을 오른쪽 열에 맞추고 선택 월의 오늘까지 누
   const glow = pace.locator('radialGradient');
   await expect(pulse).toHaveAttribute('fill', `url(#${await glow.getAttribute('id')})`);
   await expect(glow.locator('stop').last()).toHaveAttribute('stop-opacity', '0');
-  const sweep = pace.locator('.spending-pace-sweep .recharts-line-curve');
-  for (const animated of [sweep, pulse]) {
-    await expect(animated).toHaveCSS('animation-duration', '2s');
-    await expect(animated).toHaveCSS('animation-iteration-count', 'infinite');
-  }
+  await expect(area).toHaveCSS('animation-name', 'none');
+  await expect(endpoint.locator('circle').last()).not.toHaveAttribute('stroke');
+  await expect(pulse).toHaveCSS('animation-duration', '2s');
+  await expect(pulse).toHaveCSS('animation-iteration-count', 'infinite');
+  const animations = await pace.evaluate(element => element.getAnimations({ subtree: true })
+    .map(animation => (animation as CSSAnimation).animationName));
+  expect(animations).toEqual(['spending-pace-pulse']);
 
   const daySeven = (await ticks.nth(6).boundingBox())!;
   const grid = (await pace.locator('.recharts-cartesian-grid').boundingBox())!;
