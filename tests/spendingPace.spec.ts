@@ -68,8 +68,8 @@ test('파일 영역을 오른쪽 열에 맞추고 선택 월의 오늘까지 누
   await page.mouse.move(daySeven.x + daySeven.width / 2, grid.y + 12);
   const tooltip = pace.locator('.chart-tooltip');
   await expect(tooltip).toContainText('7일까지 누적 지출');
-  await expect(tooltip).toContainText('2,000원');
-  await expect(tooltip).toContainText('6,000원');
+  await expect(tooltip.getByText('2,000원', { exact: true })).toHaveCSS('color', 'rgb(75, 85, 99)');
+  await expect(tooltip.getByText('6,000원', { exact: true })).toHaveCSS('color', 'rgb(77, 108, 231)');
   await page.getByRole('tab', { name: '일별', exact: true }).click();
   await page.getByRole('button', { name: '2026년 10월 일별' }).click();
   await expect(endpoint).toHaveAttribute('data-day', '31');

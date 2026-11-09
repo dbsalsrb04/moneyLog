@@ -71,8 +71,8 @@ export default function SpendingPace({ transactions, month }: { transactions: Tr
               if (!active || !point) return null;
               return <div className="chart-tooltip">
                 <span>{point.day}일까지 누적 지출</span>
-                <div className="tooltip-series"><span>{previousLabel}</span><strong>{point.previous === null ? '—' : won(point.previous)}</strong></div>
-                <div className="tooltip-series"><span>{currentLabel}</span><strong>{point.current === null ? '—' : won(point.current)}</strong></div>
+                <div className="tooltip-series"><span>{previousLabel}</span><strong style={{ color: '#4b5563' }}>{point.previous === null ? '—' : won(point.previous)}</strong></div>
+                <div className="tooltip-series"><span>{currentLabel}</span><strong style={{ color: CURRENT_COLOR }}>{point.current === null ? '—' : won(point.current)}</strong></div>
               </div>;
             }} />
             <Area key={`fill-${throughDay}`} className="spending-pace-fill" dataKey="current" baseValue="dataMin" fill={`url(#${gradientId})`} fillOpacity={1} stroke="none" tooltipType="none" activeDot={false} isAnimationActive={false} />
