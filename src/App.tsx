@@ -103,7 +103,7 @@ export default function App() {
 
   return <div className="app-shell">
     <header className="site-header">
-      <a className="brand" href="./"><span className="brand-mark"><BarChart3 size={22} /></span>money<span>Log</span><span className="brand-dot" /></a>
+      <a className="brand" href="./"><span className="brand-mark"><BarChart3 size={22} /></span>money<span>Log</span><span className="brand-dot" />{__COMMIT_NUMBER__ && <small className="brand-version">#{__COMMIT_NUMBER__}</small>}</a>
       <button className="settings-trigger" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)}><Settings size={17} />설정</button>
     </header>
     <main className={backup ? undefined : 'initial-screen'}>
