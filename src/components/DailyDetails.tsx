@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { List } from 'lucide-react';
 import { getDailyDetails, getMonthlyCalendar, won, type CalendarDay, type DayDetails, type Transaction } from '../data';
 import MonthCalendar from './MonthCalendar';
-import MonthNavigator from './MonthNavigator';
+import AnalysisMonthPicker from './AnalysisMonthPicker';
 
 // Display names confirmed by the user. Ask before adding names for other keys.
 const FIELD_LABELS = {
@@ -59,7 +59,7 @@ export default function DailyDetails({ transactions, calendarTransactions, month
     <div className="chart-header">
       <div className="chart-title"><span className="icon-box"><List size={18} /></span><h2>세부 {partLabel}</h2></div>
     </div>
-    <MonthNavigator month={month} onChange={onMonthChange} />
+    <AnalysisMonthPicker selected={month} onChange={onMonthChange} label="세부" allowAllYears />
     <DayPages key={month} pages={pages} calendarDays={calendarDays} />
   </section>;
 }

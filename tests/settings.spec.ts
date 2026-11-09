@@ -1,4 +1,4 @@
-import { selectDailyMonth, setMonthlyPeriod } from './viewHelpers';
+import { monthButton, selectDailyMonth, setMonthlyPeriod } from './viewHelpers';
 import { expect, test, type Page } from '@playwright/test';
 
 const backup = {
@@ -102,7 +102,7 @@ test('트리에서 선택한 상위 분류와 기간·월은 방식 전환 시 �
   await expect(categories.getByRole('button', { name: '식비', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('monthly-total')).toContainText('6,000원');
   await expect(page.getByRole('button', { name: '3개월', exact: true,includeHidden:true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-07');
+  await expect(monthButton(page, '2026-07')).toHaveAttribute('aria-pressed', 'true');
   await categories.getByRole('button', { name: '식비/식사1', exact: true }).click();
   await expect(page.getByTestId('monthly-total')).toContainText('6,000원');
   await categories.getByRole('button', { name: '식비', exact: true }).click();

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { selectDailyMonth } from './viewHelpers';
+import { monthButton, selectDailyMonth } from './viewHelpers';
 
 const backup = { moneyTrackTable: [
   { id: 1, part: 'E', category: '식비/편의점', amount: 300, memo: '간식', tags: ['식비', '간식'], dateKey: '2026-10-01' },
@@ -33,7 +33,7 @@ test('한 영역의 네 탭·키보드 전환·필터와 기간·세부 날짜 �
   await tab(page, '분석').click(); await expect(page.getByTestId('analysis-total')).toContainText('500원');
   await tab(page, '세부').click();
   await expect(page.getByRole('region', { name: '세부 지출' }).locator('time')).toHaveText('2026-10-03');
-  await tab(page, '일별').click(); await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-10');
+  await tab(page, '일별').click(); await expect(monthButton(page, '2026-10')).toHaveAttribute('aria-pressed', 'true');
   await tab(page, '월별').click(); await expect(page.getByRole('button', { name: '3개월', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('tabpanel')).toHaveCount(1);
 });
@@ -164,7 +164,7 @@ test('월 버튼을 항상 표시하며 연도만 선택하는 팝업·2020~2031
   const picker = page.getByRole('group', { name: '분석 월 선택' });
   const years = page.getByRole('dialog', { name: '분석 연도 선택', exact: true });
   const bounds = (await trigger.boundingBox())!;
-  const period = (await page.locator('.analysis-period').boundingBox())!;
+  const period = (await page.locator('#panel-analysis .analysis-period').boundingBox())!;
   expect(bounds.x + bounds.width / 2).toBeCloseTo(period.x + period.width / 2, 0);
   const monthBounds = await picker.getByRole('button').evaluateAll(elements => elements.map(element => element.getBoundingClientRect().top));
   expect(new Set(monthBounds).size).toBe(1);

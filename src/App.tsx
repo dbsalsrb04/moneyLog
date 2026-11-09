@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { BarChart3, CalendarDays, RotateCcw, Search, Settings } from 'lucide-react';
 import {
   aggregateDaily, aggregateMonthly, aggregateMonthlyByPart, filterTransactions, getFilterOptions,
-  monthRange, parseBackup, TRANSACTION_COLORS, TRANSACTION_PARTS, won, type Backup, type TransactionPart,
+  parseBackup, TRANSACTION_COLORS, TRANSACTION_PARTS, won, type Backup, type TransactionPart,
 } from './data';
 import FileUpload from './components/FileUpload';
 import FilterPanel from './components/FilterPanel';
@@ -13,6 +13,8 @@ import SettingsDialog from './components/SettingsDialog';
 import ViewTabs, { type DashboardView } from './components/ViewTabs';
 import CategoryAnalysis from './components/CategoryAnalysis';
 import HelpTip from './components/HelpTip';
+import AnalysisMonthPicker from './components/AnalysisMonthPicker';
+import { useStoredSetting } from './settings';
 
 export default function App() {
   const [backup, setBackup] = useState<Backup | null>(null);
@@ -29,7 +31,8 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [view, setView] = useState<DashboardView>('monthly');
-  const [excludeRent, setExcludeRent] = useState(false);
+  const [rentExclusion, setRentExclusion] = useStoredSetting('moneylog.rentExclusion', ['off', 'on'], 'off');
+  const excludeRent = rentExclusion === 'on';
   const uploadVersion = useRef(0);
   const partLabel = TRANSACTION_PARTS.find(item => item.value === part)!.label;
 
@@ -48,7 +51,6 @@ export default function App() {
     parts: comparisonParts,
   } : undefined, [backup, chartMatching, period, comparisonParts]);
   const daily = useMemo(() => month ? aggregateDaily(chartTransactions, month) : [], [chartTransactions, month]);
-  const months = useMemo(() => backup ? monthRange(backup.firstMonth < monthly[0].key ? backup.firstMonth : monthly[0].key, backup.latestMonth).reverse() : [], [backup, monthly]);
   const total = (points: typeof daily) => points.reduce((sum, point) => sum + point.amount, 0);
 
   function resetFilters() {
@@ -131,8 +133,9 @@ export default function App() {
           <div className="view-header">
             <ViewTabs value={view} onChange={setView} />
             <div className="rent-filter">
-              <button type="button" className="rent-toggle" aria-label="월세 제외" aria-pressed={excludeRent} onClick={() => setExcludeRent(previous => !previous)} />
-              <span>{excludeRent ? '월세 제외' : '월세 포함'}</span>
+              <button type="button" className="rent-toggle" aria-pressed={excludeRent} onClick={() => setRentExclusion(excludeRent ? 'off' : 'on')}>
+                월세 제외하기<span className="rent-indicator" aria-hidden="true" />
+              </button>
               <HelpTip label="월세 제외 도움말">주거/월세 제외</HelpTip>
             </div>
           </div>
@@ -171,10 +174,8 @@ export default function App() {
               <section className="chart-card" aria-label={`일별 ${partLabel}`}>
                 <div className="chart-header">
                   <div className="chart-title"><span className="icon-box violet"><CalendarDays size={18} /></span><h2>일별 {partLabel}</h2></div>
-                  <label className="month-select"><CalendarDays size={14} /><select aria-label="일별 조회 월" value={month} onChange={e => setMonth(e.target.value)}>
-                    {[...new Set([month, ...months])].sort().reverse().map(m => <option key={m} value={m}>{m.split('-')[0]}년 {Number(m.split('-')[1])}월</option>)}
-                  </select></label>
                 </div>
+                <AnalysisMonthPicker selected={month} onChange={setMonth} label="일별" allowAllYears />
                 <div className="chart-total" data-testid="daily-total">{won(total(daily))}<span>{month.replace('-', '년 ')}월 {partLabel}</span></div>
                 <SpendingChart points={daily} partLabel={partLabel} daily active={view === 'daily'} />
               </section>

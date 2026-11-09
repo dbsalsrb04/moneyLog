@@ -1,3 +1,4 @@
+import { monthButton } from './viewHelpers';
 import { expect, test, type Locator } from '@playwright/test';
 
 const backup = { moneyTrackTable: [
@@ -33,7 +34,7 @@ test('월별·일별·비교·분석 막대를 클릭해도 내부 SVG 그룹에
   await bars.first().click();
   await expectNoClickOutline(chart);
   await page.getByRole('tab', { name: '일별', exact: true }).click();
-  await expect(page.getByLabel('일별 조회 월')).toHaveValue('2026-09');
+  await expect(monthButton(page, '2026-09')).toHaveAttribute('aria-pressed', 'true');
   await bars.first().click();
   await expectNoClickOutline(chart);
   await expect(chart.locator('.chart-tooltip')).toContainText('10,000원');

@@ -12,7 +12,7 @@ const SettingsContext = createContext<{
   setAnalysisCategoryGrouping: (grouping: CategoryGrouping) => void;
 } | null>(null);
 
-function useStoredSetting<T extends string>(key: string, values: readonly T[], fallback: T) {
+export function useStoredSetting<T extends string>(key: string, values: readonly T[], fallback: T) {
   const [value, setValue] = useState<T>(() => {
     try {
       const stored = localStorage.getItem(key);
