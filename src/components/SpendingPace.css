@@ -65,8 +65,8 @@
 
 @keyframes spending-pace-draw {
   0% { clip-path: inset(-4px 100% -4px -4px) fill-box; opacity: .35; }
-  55% { clip-path: inset(-40px -40px -40px -40px) fill-box; opacity: 1; }
-  100% { clip-path: inset(-40px -40px -40px -40px) fill-box; opacity: 0; }
+  55% { clip-path: inset(-4px -4px -4px -4px) fill-box; opacity: 1; }
+  100% { clip-path: inset(-4px -4px -4px -4px) fill-box; opacity: 0; }
 }
 
 @keyframes spending-pace-pulse {
