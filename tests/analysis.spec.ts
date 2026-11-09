@@ -267,31 +267,44 @@ test('그 외 팝업의 각 열 너비를 절반으로 줄이고 긴 금액과 �
   }
 });
 
-test('파이와 막대에서 선택한 카테고리의 해당 월 거래를 날짜별로 표시한다', async ({ page }) => {
+test('상위 카테고리는 하위 목록을 거쳐 열고, 하위 카테고리는 해당 월 거래를 바로 표시한다', async ({ page }) => {
   await page.goto('/');
   await upload(page, { moneyTrackTable: [
-    ...backup.moneyTrackTable,
+    ...backup.moneyTrackTable.map(row => row.id === 1 ? { ...row, amount: 200 } : row),
     { ...backup.moneyTrackTable[0], id: 7, dateKey: '2026-09-01', memo: '이전 달 거래' },
     { ...backup.moneyTrackTable[0], id: 8, part: 'R', memo: '다른 유형 거래' },
+    { ...backup.moneyTrackTable[0], id: 9, amount: 50, dateKey: '2026-10-03', memo: '야식' },
+    { ...backup.moneyTrackTable[0], id: 10, amount: 50, dateKey: '2026-10-02', memo: '과자' },
   ] });
   await tab(page, '분석').click();
 
   await page.locator('.analysis-category-shape[data-category-key="category:식비"]').click();
-  const parent = page.getByRole('dialog', { name: '식비', exact: true });
-  await expect(parent.getByRole('heading', { name: '식비', exact: true })).toBeVisible();
-  await expect(parent.locator('time')).toHaveText(['2026-10-01', '2026-10-02']);
-  await expect(parent.getByRole('listitem')).toHaveText(['300원간식#식비 #간식', '100원커피#음료', '100원식사#식비']);
-  await expect(parent.getByRole('listitem').first()).toHaveCSS('animation-duration', '0.05s');
-  await expect(parent.getByRole('listitem').last()).toHaveCSS('animation-delay', '0.04s');
+  const parent = page.getByRole('dialog', { name: '식비 하위 카테고리', exact: true });
+  await expect(parent.locator('tbody tr')).toHaveText(['식비/편의점30%300원', '식비10%100원', '식비/카페10%100원']);
+  const trigger = parent.getByRole('button', { name: '식비/편의점', exact: true });
+  const child = page.getByRole('dialog', { name: '식비/편의점', exact: true });
+  await expect(child).toHaveCount(0);
+  await trigger.click();
+  await expect(child.getByRole('heading', { name: '식비/편의점', exact: true })).toBeVisible();
+  await expect(child.locator('time')).toHaveText(['2026-10-01', '2026-10-02', '2026-10-03']);
+  await expect(child.getByRole('listitem')).toHaveText(['200원간식#식비 #간식', '50원과자#식비 #간식', '50원야식#식비 #간식']);
+  const firstRecord = child.getByRole('listitem').first();
+  await expect(firstRecord.locator('.detail-tag')).toHaveText(['#식비', '#간식']);
+  await expect(firstRecord.locator('strong')).toHaveCSS('text-align', 'right');
+  await expect(child.getByRole('listitem').first()).toHaveCSS('animation-duration', '0.05s');
+  await expect(child.getByRole('listitem').last()).toHaveCSS('animation-delay', '0.04s');
+  const parentBounds = (await parent.boundingBox())!;
+  expect((await child.boundingBox())!.x).toBeCloseTo(parentBounds.x + parentBounds.width + 8, 0);
+  await page.keyboard.press('Escape');
+  await expect(child).toHaveCount(0);
+  await expect(trigger).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(parent).toHaveCount(0);
 
   await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();
   await page.getByRole('switch', { name: '그래프 모양' }).click();
   await page.locator('.analysis-category-shape[data-category-key="category:식비/편의점"]').click();
-  const child = page.getByRole('dialog', { name: '식비/편의점', exact: true });
-  await expect(child.locator('time')).toHaveText('2026-10-01');
-  await expect(child.getByRole('listitem')).toHaveText('300원간식#식비 #간식');
+  await expect(child.getByRole('listitem')).toHaveCount(3);
   await child.getByRole('button', { name: '카테고리 내역 닫기' }).click();
   const legend = page.locator('.analysis-table tr[data-legend-key="category:식비/편의점"]');
   await expect(legend).toBeFocused();

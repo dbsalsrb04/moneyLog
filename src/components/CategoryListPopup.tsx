@@ -5,6 +5,8 @@ import { won, type Transaction } from '../data';
 import CategoryTransactionsPopup, { positionAnalysisPopup, type AnalysisPopupPoint } from './CategoryTransactionsPopup';
 
 type Props = {
+  title: string;
+  label: string;
   rows: CategoryShare[];
   point: AnalysisPopupPoint;
   partLabel: string;
@@ -15,7 +17,7 @@ type Props = {
   restoreFocus: () => void;
 };
 
-export default function OtherCategoriesPopup({ rows, point, partLabel, transactions, grouping, month, onClose, restoreFocus }: Props) {
+export default function CategoryListPopup({ title, label, rows, point, partLabel, transactions, grouping, month, onClose, restoreFocus }: Props) {
   const popup = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<{ category: string; trigger: HTMLButtonElement } | null>(null);
   useLayoutEffect(() => {
@@ -27,8 +29,8 @@ export default function OtherCategoriesPopup({ rows, point, partLabel, transacti
     return () => { window.removeEventListener('resize', position); element.hidePopover(); };
   }, [point]);
 
-  return <div ref={popup} className="other-categories-popup" popover="auto" role="dialog" aria-label="그 외 카테고리" onToggle={event => { if (event.target === event.currentTarget && event.newState === 'closed') onClose(); }}>
-    <div className="other-popup-header"><strong>그 외</strong><button aria-label="그 외 닫기" onClick={() => { onClose(); restoreFocus(); }}><X size={16} /></button></div>
+  return <div ref={popup} className="other-categories-popup" popover="auto" role="dialog" aria-label={label} onToggle={event => { if (event.target === event.currentTarget && event.newState === 'closed') onClose(); }}>
+    <div className="other-popup-header"><strong>{title}</strong><button aria-label={`${title} 닫기`} onClick={() => { onClose(); restoreFocus(); }}><X size={16} /></button></div>
     <div className="other-popup-scroll">
       <table className="other-categories-table">
         <thead><tr><th>카테고리</th><th>백분율</th><th>{partLabel} 금액</th></tr></thead>

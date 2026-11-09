@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChartPie } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { aggregateCategoryShares, formatPercentage, groupCategoryLegend, type CategoryBreakdown, type CategoryShare } from '../analysis';
+import { aggregateCategoryShares, analysisCategory, formatPercentage, groupCategoryLegend, type CategoryBreakdown, type CategoryShare } from '../analysis';
 import { useSettings } from '../settings';
 import { won, type Transaction } from '../data';
 import AnalysisMonthPicker from './AnalysisMonthPicker';
 import HelpTip from './HelpTip';
-import OtherCategoriesPopup from './OtherCategoriesPopup';
+import CategoryListPopup from './CategoryListPopup';
 import AnalysisPieChart from './AnalysisPieChart';
 import CategoryTransactionsPopup, { type AnalysisPopupPoint } from './CategoryTransactionsPopup';
 
@@ -32,6 +32,13 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
     const visible = new Set(rows.filter(row => !row.isOther).map(row => row.category));
     return allRows.filter(row => !visible.has(row.category));
   }, [allRows, rows]);
+  const listRows = useMemo(() => {
+    if (!openCategory) return null;
+    if (openCategory.row.isOther) return otherRows;
+    if (analysisCategoryGrouping === 'full') return null;
+    return aggregateCategoryShares(monthTransactions, 'full')
+      .filter(row => analysisCategory(row.category, 'parent') === openCategory.row.category);
+  }, [openCategory, otherRows, analysisCategoryGrouping, monthTransactions]);
   useEffect(() => { setOpenCategory(null); }, [allRows, active, analysisChartType]);
   const total = rows.reduce((sum, row) => sum + row.amount, 0);
   const hasNegative = rows.some(row => row.amount < 0);
@@ -87,12 +94,15 @@ export default function CategoryAnalysis({ transactions, month, partLabel, activ
         openChartRow(index, { x: bounds.left, y: bounds.bottom });
       }}><th scope="row"><i style={{ background: row.color }} />{row.category}</th><td>{won(row.amount)}</td><td>{formatPercentage(row.percentage)}</td></tr>)}</tbody></table></div>
     </div> : <p className="analysis-empty">{rows.length ? '비중을 표시할 양수 합계가 없습니다.' : '선택한 월과 필터에 해당하는 내역이 없습니다.'}</p>}
-    {active && openCategory && (openCategory.row.isOther ? <OtherCategoriesPopup
-      rows={otherRows}
+    {active && openCategory && (listRows ? <CategoryListPopup
+      key={openCategory.row.key}
+      title={openCategory.row.category}
+      label={openCategory.row.isOther ? '그 외 카테고리' : `${openCategory.row.category} 하위 카테고리`}
+      rows={listRows}
       point={openCategory.point}
       partLabel={partLabel}
       transactions={monthTransactions}
-      grouping={analysisCategoryGrouping}
+      grouping={openCategory.row.isOther ? analysisCategoryGrouping : 'full'}
       month={selectedMonth}
       onClose={closeCategory}
       restoreFocus={focusLegend}

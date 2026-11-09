@@ -95,7 +95,7 @@ src/
   components/AnalysisPieChart.tsx 파이 차트·카테고리 라벨 렌더링
   pieLabels.ts                  글자 폭·조각 크기별 라벨 배치·연결선
   components/AnalysisMonthPicker.tsx 분석 조회 월 단일 선택
-  components/OtherCategoriesPopup.tsx 그 외 전체 내역·순차 애니메이션
+  components/CategoryListPopup.tsx 그 외·하위 카테고리 목록과 거래 내역 연결
   components/HelpTip.tsx        도움말 말풍선
   components/FileUpload.tsx     파일 선택·드래그 앤 드롭
   filePicker.ts                 사이트 전용 폴더 기억·기본 선택창 대체

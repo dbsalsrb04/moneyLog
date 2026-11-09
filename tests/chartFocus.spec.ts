@@ -45,6 +45,7 @@ test('월별·일별·비교·분석 막대를 클릭해도 내부 SVG 그룹에
   await expectNoClickOutline(chart);
 
   await page.getByRole('tab', { name: '분석', exact: true }).click();
+  await page.getByRole('switch', { name: '하위 카테고리 기준' }).click();
   await page.getByRole('switch', { name: '그래프 모양' }).click();
   await bars.first().click();
   const popup = page.getByRole('dialog', { name: '식비', exact: true });

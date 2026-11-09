@@ -177,6 +177,10 @@
 .other-categories-popup,.category-transactions-popup{position:fixed;inset:auto;margin:0;max-height:min(440px,calc(100dvh - 16px));padding:12px;border:1px solid #d7dfeb;border-radius:8px;background:#fff;color:#596d8b;box-shadow:0 8px 30px #2530472b;overflow:hidden}
 /* Halve each table column while retaining the popup's 12px padding and 1px border. */
 .other-categories-popup{width:calc((min(430px,calc(100vw - 16px)) + 26px)/2)}
+.other-categories-popup:popover-open{display:flex;flex-direction:column}
+.other-categories-popup>.other-popup-header strong{min-width:0;max-height:5em;overflow:auto;overflow-wrap:anywhere}
+.other-categories-popup>.other-popup-header button{flex-shrink:0}
+.other-categories-popup>.other-popup-scroll{min-height:0}
 .other-popup-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:9px;font-size:12px}
 .other-popup-header button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:3px;background:transparent;color:#8794a8}
 .other-popup-header button:hover{background:#f0f3f9}
@@ -204,8 +208,10 @@
 .category-transactions-day ul{margin:0;padding:0;list-style:none}
 .category-transaction{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) minmax(0,1fr);font-size:11px;line-height:1.5}
 .category-transaction>*{padding:5px 7px;overflow-wrap:anywhere;white-space:pre-wrap}
-.category-transaction>:first-child{padding-left:0;font-variant-numeric:tabular-nums}
+.category-transaction>:first-child{padding-left:0;text-align:right;font-variant-numeric:tabular-nums}
 .category-transaction>*+*{border-left:1px solid #edf0f5}
+.category-transaction>.detail-tags{align-content:flex-start;align-items:flex-start}
+.category-transaction .detail-tag{background:#edf0f3;color:#4b5563}
 .other-category-row{animation:other-row-enter 50ms linear both}
 @keyframes other-row-enter{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
 @media(prefers-reduced-motion:reduce){.other-category-row{animation:none}.analysis-category-shape{transition:none}}

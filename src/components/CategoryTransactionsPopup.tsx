@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useMemo, useRef } from 'react';
+import { Fragment, useId, useLayoutEffect, useMemo, useRef } from 'react';
 import { X } from 'lucide-react';
 import { analysisCategory, type CategoryGrouping } from '../analysis';
 import { getDailyDetails, won, type Transaction } from '../data';
@@ -105,7 +105,12 @@ export default function CategoryTransactionsPopup({ category, grouping, transact
             return <li key={`${transaction.id}-${index}`} className="category-transaction other-category-row" style={{ animationDelay }}>
               <strong>{won(transaction.amount)}</strong>
               <span>{transaction.memo || '—'}</span>
-              <span>{transaction.tags.length ? transaction.tags.map(tag => `#${tag}`).join(' ') : '—'}</span>
+              <span className="detail-tags">
+                {transaction.tags.length ? transaction.tags.map((tag, tagIndex) => <Fragment key={`${tag}-${tagIndex}`}>
+                  {tagIndex > 0 && ' '}
+                  <span className="detail-tag">#{tag}</span>
+                </Fragment>) : '—'}
+              </span>
             </li>;
           })}
         </ul>
