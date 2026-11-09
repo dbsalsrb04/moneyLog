@@ -59,7 +59,7 @@ test('파일 영역을 오른쪽 열에 맞추고 선택 월의 오늘까지 누
   await expect(glow.locator('stop').last()).toHaveAttribute('stop-opacity', '0');
   const sweep = pace.locator('.spending-pace-sweep .recharts-line-curve');
   for (const animated of [sweep, pulse]) {
-    await expect(animated).toHaveCSS('animation-duration', '0.5s');
+    await expect(animated).toHaveCSS('animation-duration', '2s');
     await expect(animated).toHaveCSS('animation-iteration-count', 'infinite');
   }
 

@@ -52,7 +52,7 @@ export default function SpendingPace({ transactions, month }: { transactions: Tr
           <ComposedChart data={points} margin={{ top: 22, right: 22, bottom: 2, left: 0 }} accessibilityLayer>
             <defs>
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor={CURRENT_COLOR} stopOpacity={0.24} />
+                <stop offset="0%" stopColor={CURRENT_COLOR} stopOpacity={0.32} />
                 <stop offset="100%" stopColor={CURRENT_COLOR} stopOpacity={0} />
               </linearGradient>
               <radialGradient id={pulseId}>
