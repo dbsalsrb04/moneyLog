@@ -38,6 +38,8 @@ test('파일 영역을 오른쪽 열에 맞추고 선택 월의 오늘까지 누
 
   const ticks = pace.locator('.recharts-xAxis-tick-labels text');
   await expect(ticks).toHaveText(Array.from({ length: 30 }, (_, i) => String(i + 1)));
+  await expect(pace.getByRole('heading')).toHaveCount(0);
+  await expect(pace.locator('.spending-pace-legend > span')).toHaveText(['2026.10', '2026.11']);
   const endpoint = pace.getByTestId('spending-pace-endpoint');
   await expect(endpoint).toHaveAttribute('data-day', '16');
   await expect(pace.getByText('지난달 같은 시점보다 6,000원 더 썼어요.')).toBeVisible();
@@ -49,7 +51,17 @@ test('파일 영역을 오른쪽 열에 맞추고 선택 월의 오늘까지 누
   const pointX = await endpoint.evaluate((point: SVGGraphicsElement) => point.transform.baseVal.getItem(0).matrix.e);
   expect(areaEnd).toBeCloseTo(pointX, 1);
   await expect(pace.locator('linearGradient')).toHaveAttribute('y2', '100%');
+  await expect(pace.locator('linearGradient stop').last()).toHaveAttribute('offset', '100%');
   await expect(pace.locator('linearGradient stop').last()).toHaveAttribute('stop-opacity', '0');
+  const pulse = endpoint.locator('.spending-pace-pulse');
+  const glow = pace.locator('radialGradient');
+  await expect(pulse).toHaveAttribute('fill', `url(#${await glow.getAttribute('id')})`);
+  await expect(glow.locator('stop').last()).toHaveAttribute('stop-opacity', '0');
+  const sweep = pace.locator('.spending-pace-sweep .recharts-line-curve');
+  for (const animated of [sweep, pulse]) {
+    await expect(animated).toHaveCSS('animation-duration', '0.5s');
+    await expect(animated).toHaveCSS('animation-iteration-count', 'infinite');
+  }
 
   const daySeven = (await ticks.nth(6).boundingBox())!;
   const grid = (await pace.locator('.recharts-cartesian-grid').boundingBox())!;

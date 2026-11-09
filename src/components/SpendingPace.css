@@ -1,5 +1,5 @@
 .spending-pace {
-  --pace-sweep-duration: 900ms;
+  --pace-cycle-duration: 500ms;
   min-width: 0;
   padding: 14px 16px 12px;
 }
@@ -53,24 +53,26 @@
 
 .spending-pace-sweep .recharts-line-curve,
 .spending-pace-fill .recharts-area-area {
-  animation: spending-pace-draw var(--pace-sweep-duration) ease-out both;
+  animation: spending-pace-draw var(--pace-cycle-duration) ease-out infinite;
 }
 
 .spending-pace-pulse {
   transform-box: fill-box;
   transform-origin: center;
   opacity: 0;
-  animation: spending-pace-pulse 800ms var(--pace-sweep-duration) ease-out forwards;
+  animation: spending-pace-pulse var(--pace-cycle-duration) ease-out infinite;
 }
 
 @keyframes spending-pace-draw {
-  from { clip-path: inset(-4px 100% -4px -4px) fill-box; }
-  to { clip-path: inset(-4px -4px -4px -4px) fill-box; }
+  0% { clip-path: inset(-4px 100% -4px -4px) fill-box; opacity: 1; }
+  55%, 85% { clip-path: inset(-4px -4px -4px -4px) fill-box; opacity: 1; }
+  100% { clip-path: inset(-4px -4px -4px -4px) fill-box; opacity: 0; }
 }
 
 @keyframes spending-pace-pulse {
-  from { opacity: .9; transform: scale(1); }
-  to { opacity: 0; transform: scale(4); }
+  0%, 54% { opacity: 0; transform: scale(1); }
+  55% { opacity: .9; transform: scale(1); }
+  100% { opacity: 0; transform: scale(4); }
 }
 
 @media (prefers-reduced-motion: reduce) {
