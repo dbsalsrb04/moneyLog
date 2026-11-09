@@ -22,8 +22,8 @@ test('파일 업로드, 다중 필터, 기간 유지, 재업로드 및 오류 �
  await t.getByRole('button',{name:'교통비',exact:true}).click();await t.getByRole('button',{name:'식비',exact:true}).click();await t.getByRole('button',{name:'간식',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('0원');await expect(page.getByTestId('daily-total')).toContainText('0원');await expect(page.getByRole('button',{name:'3개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');await expect(monthButton(page, '2026-07')).toHaveAttribute('aria-pressed', 'true');
  await t.getByRole('button',{name:'교통비',exact:true}).click();await expect(t.getByRole('button',{name:'전체',exact:true})).toHaveAttribute('aria-pressed','true');
  await c.getByRole('button',{name:'전체',exact:true}).click();await expect(page.getByTestId('monthly-total')).toContainText('21,378원');
- await page.getByRole('region',{name:'월별 지출',exact:true}).locator('.recharts-bar-rectangle').first().click();await expect(monthButton(page, '2026-07')).toHaveAttribute('aria-pressed', 'true');
- await page.getByRole('region',{name:'월별 지출',exact:true}).locator('summary').click();await page.getByRole('button',{name:'2026-08',exact:true}).click();await expect(monthButton(page, '2026-08')).toHaveAttribute('aria-pressed', 'true');
+ await page.getByRole('region',{name:'월별 지출',exact:true}).locator('.recharts-bar-rectangle').last().click();await expect(monthButton(page, '2026-08')).toHaveAttribute('aria-pressed', 'true');
+ await page.getByRole('button',{name:'월별 내역 닫기',exact:true}).click();
  await upload(page,{moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]},'next.json');await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(monthButton(page, '2024-02')).toHaveAttribute('aria-pressed', 'true');await expect(page.getByRole('button',{name:'12개월',exact:true,includeHidden:true})).toHaveAttribute('aria-pressed','true');await expect(c.getByRole('button',{name:'식비',exact:true})).toHaveCount(0);
  await upload(page,{});await expect(page.getByRole('alert')).toBeVisible();await expect(page.getByTestId('daily-total')).toContainText('900원');expect(errors).toEqual([]);
 });
@@ -109,29 +109,6 @@ test('드래그 앤 드롭 업로드·교체·잘못된 파일 및 다중 파일
  await drop([{name:'one.json',content:'{}'},{name:'two.json',content:'{}'}]);await expect(page.getByRole('alert')).toContainText('하나만');await expect(page.getByTestId('monthly-total')).toContainText('21,378원');
  await drop([{name:'replacement.JSON',content:JSON.stringify({moneyTrackTable:[{id:9,part:'E',category:'생활',amount:900,tags:[],dateKey:'2024-02-29'}]})}]);
  await expect(page.getByRole('alert')).toHaveCount(0);await expect(page.getByTestId('monthly-total')).toContainText('900원');await expect(monthButton(page, '2024-02')).toHaveAttribute('aria-pressed', 'true');
-});
-
-test('금액 표는 날짜 열을 유지하고 가장 긴 금액의 1.3배 너비를 사용한다',async({page})=>{
- await page.goto('/');await upload(page);
- for(const regionName of ['월별 지출','일별 지출']){
-  await page.getByRole('tab',{name:regionName.startsWith('월별')?'월별':'일별',exact:true}).click();
-  const chart=page.getByRole('region',{name:regionName,exact:true});
-  await chart.locator('summary').click();
-  const container=chart.locator('.amount-table-container');
-  await expect.poll(async()=>container.evaluate(element=>{
-   const cells=[...element.querySelectorAll<HTMLElement>('td.amount-cell')];
-   const maxText=Math.max(...[...element.querySelectorAll<HTMLElement>('.amount-text')].map(text=>text.getBoundingClientRect().width));
-   const amountWidth=cells[0].getBoundingClientRect().width;
-   const dateWidth=element.querySelector('tbody th')!.getBoundingClientRect().width;
-   return Math.abs(amountWidth-maxText*1.3)<2 && Math.abs(dateWidth-element.clientWidth*.5)<2;
-  })).toBe(true);
- }
- await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'간식',exact:true}).click();
- await page.getByRole('tab',{name:'월별',exact:true}).click();
- await expect.poll(async()=>page.getByRole('region',{name:'월별 지출',exact:true}).locator('.amount-table-container').evaluate(element=>{
-  const maxText=Math.max(...[...element.querySelectorAll<HTMLElement>('.amount-text')].map(text=>text.getBoundingClientRect().width));
-  return Math.abs(element.querySelector('td.amount-cell')!.getBoundingClientRect().width-maxText*1.3)<2;
- })).toBe(true);
 });
 
 test('세부 내역은 하루씩 넘기며 필터·유형·월과 연동된다',async({page})=>{
@@ -278,11 +255,7 @@ test('월별 비교는 두 유형까지만 선택하고 같은 월의 막대를 
  await selectDailyMonth(page,'2026-07');
  await series.nth(1).locator('.recharts-bar-rectangle').last().click();
  await expect(monthButton(page, '2026-08')).toHaveAttribute('aria-pressed', 'true');
- await monthly.locator('summary').click();
- await expect(monthly.getByRole('columnheader',{name:'지출 금액',exact:true})).toBeVisible();
- await expect(monthly.getByRole('columnheader',{name:'수입 금액',exact:true})).toBeVisible();
- const august=monthly.getByRole('row').filter({has:page.getByRole('button',{name:'2026-08',exact:true})});
- await expect(august).toContainText('20,400원');await expect(august).toContainText('100,000원');
+ await page.getByRole('button',{name:'월별 내역 닫기',exact:true}).click();
  await page.getByRole('region',{name:'태그 필터'}).getByRole('button',{name:'간식',exact:true}).click();
  await expect(page.getByTestId('comparison-total-E')).toContainText('7,200원');
  await expect(page.getByTestId('comparison-total-R')).toContainText('0원');
@@ -304,7 +277,6 @@ test('모바일 비교와 거래 유형 변경·파일 교체 시 비교 상태 
  await monthly.getByRole('button',{name:'다른 유형과 비교하기',exact:true}).click();
  await monthly.getByRole('group',{name:'월별 비교 유형'}).getByRole('button',{name:'기록',exact:true}).click();
  await expect(page.getByTestId('comparison-total-O')).toContainText('1원');
- await monthly.locator('summary').click();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.getByRole('group',{name:'거래 유형'}).getByRole('button',{name:'저축',exact:true}).click();
  await expect(monthly.getByRole('button',{name:'비교 종료',exact:true})).toHaveCount(0);

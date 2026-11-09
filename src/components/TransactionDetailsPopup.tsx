@@ -92,7 +92,7 @@ export default function TransactionDetailsPopup({ title, days, point, beside, cl
     <div className="other-popup-scroll category-transactions-scroll">
       {days.length === 0 && <p>해당 날짜에 조건과 일치하는 내역이 없습니다.</p>}
       {days.map(day => <section className="category-transactions-day" key={day.dateKey}>
-        <h4><time dateTime={day.dateKey}>{day.dateKey}</time></h4>
+        {(days.length > 1 || title !== day.dateKey) && <h4><time dateTime={day.dateKey}>{day.dateKey}</time></h4>}
         <ul>
           {day.transactions.map((transaction, index) => {
             const animationDelay = `${rowIndex * 20}ms`;

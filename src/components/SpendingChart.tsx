@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { TRANSACTION_COLORS, TRANSACTION_PARTS, won, type ComparisonPoint, type MonthlyComparison, type Point, type Transaction, type TransactionPart } from '../data';
-import AmountTable from './AmountTable';
 import MonthlyTransactionsPopup from './MonthlyTransactionsPopup';
 import TransactionDetailsPopup, { type AnalysisPopupPoint } from './TransactionDetailsPopup';
 
@@ -93,9 +92,6 @@ export default function SpendingChart({ points, partLabel, transactions, daily, 
         </BarChart>
       </ResponsiveContainer>}
     </div>
-    <details className="chart-data"><summary>{daily ? '일별' : '월별'} 금액 표</summary>
-      <AmountTable points={points} partLabel={partLabel} daily={daily} selectedMonth={selectedMonth} onSelect={onSelect} comparison={comparison} />
-    </details>
     {active && opened && (daily ? <TransactionDetailsPopup
       key={opened.key}
       title={opened.key}

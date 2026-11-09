@@ -21,6 +21,7 @@ async function upload(page: Page) {
 test('월별 막대는 날짜별 합계를 열고, 날짜를 누르면 오른쪽에 거래 상세가 열린다', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await upload(page);
+  await expect(page.getByText('월별 금액 표', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: '월세 제외하기', exact: true }).click();
   await page.locator('#panel-monthly .recharts-bar-rectangle path').first().click();
 
@@ -38,6 +39,7 @@ test('월별 막대는 날짜별 합계를 열고, 날짜를 누르면 오른쪽
   await dayButton.click();
   const records = detail.getByRole('listitem');
   await expect(records).toHaveText(['7,200원아침 식사#식비 #출근', '4,800원카페#휴식']);
+  await expect(detail.getByText('2026-11-03', { exact: true })).toHaveCount(1);
   await expect(records.first().locator('strong')).toHaveCSS('text-align', 'right');
   await expect(records.first().locator('.detail-tag')).toHaveText(['#식비', '#출근']);
   await expect(records.last()).toHaveCSS('animation-delay', '0.02s');
@@ -58,6 +60,7 @@ test('모바일 일별 막대는 필터에 맞는 거래 상세만 바로 연다
   await page.setViewportSize({ width: 390, height: 844 });
   await upload(page);
   await page.getByRole('tab', { name: '일별', exact: true }).click();
+  await expect(page.getByText('일별 금액 표', { exact: true })).toHaveCount(0);
   await monthButton(page, '2026-11').click();
   await page.getByRole('region', { name: '태그 필터' }).getByRole('button', { name: '출근', exact: true }).click();
   await page.locator('#panel-daily .recharts-bar-rectangle path').first().click();
@@ -65,6 +68,7 @@ test('모바일 일별 막대는 필터에 맞는 거래 상세만 바로 연다
   const detail = page.getByRole('dialog', { name: '2026-11-03', exact: true });
   await expect(page.getByRole('dialog')).toHaveCount(1);
   await expect(detail.getByRole('listitem')).toHaveText('7,200원아침 식사#식비 #출근');
+  await expect(detail.getByText('2026-11-03', { exact: true })).toHaveCount(1);
   const bounds = (await detail.boundingBox())!;
   expect(bounds.x).toBeGreaterThanOrEqual(0);
   expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
