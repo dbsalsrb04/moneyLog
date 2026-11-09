@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { useEffect, useRef, useState, type ComponentProps, type MouseEvent } from 'react';
+import { BarChart, Bar, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Rectangle } from 'recharts';
 import { TRANSACTION_COLORS, TRANSACTION_PARTS, won, type ComparisonPoint, type MonthlyComparison, type Point, type Transaction, type TransactionPart } from '../data';
 import MonthlyTransactionsPopup from './MonthlyTransactionsPopup';
 import TransactionDetailsPopup, { type AnalysisPopupPoint } from './TransactionDetailsPopup';
@@ -21,6 +21,19 @@ type OpenPoint = {
   series?: TransactionPart;
   trigger: HTMLElement | SVGElement | null;
 };
+
+type PeriodHighlightProps = Pick<ComponentProps<typeof Rectangle>, 'x' | 'y' | 'width' | 'height' | 'className'> & {
+  payloadIndex?: string | number;
+  onOpen: (index: number, event: MouseEvent<SVGPathElement>, rightHalf: boolean) => void;
+};
+
+function PeriodHighlight({ payloadIndex, onOpen, ...bounds }: PeriodHighlightProps) {
+  return <Rectangle {...bounds} fill="#f0f4ff" radius={5} pointerEvents="visibleFill" style={{ cursor: 'pointer' }} onClick={event => {
+    if (payloadIndex == null) return;
+    const { left, width } = event.currentTarget.getBoundingClientRect();
+    onOpen(Number(payloadIndex), event, event.clientX >= left + width / 2);
+  }} />;
+}
 
 export default function SpendingChart({ points, partLabel, transactions, daily, selectedMonth, onSelect, comparison, active = true }: Props) {
   const chartData: (Point | ComparisonPoint)[] = comparison?.points ?? points;
@@ -60,7 +73,10 @@ export default function SpendingChart({ points, partLabel, transactions, daily, 
           <CartesianGrid strokeDasharray="3 5" vertical={false} stroke="#e9edf3" />
           <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8490a3' }} tickMargin={12} interval={daily ? 0 : 'preserveStartEnd'} minTickGap={8} />
           <YAxis width={65} axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#8490a3' }} tickFormatter={n => Math.abs(n) >= 10000 ? `${Number((n / 10000).toFixed(1))}만` : Number(n).toLocaleString('ko-KR')} />
-          <Tooltip cursor={{ fill: '#f0f4ff', radius: 5 }} content={({ active, payload }) => {
+          <Tooltip cursor={<PeriodHighlight onOpen={(index, event, rightHalf) => {
+            const series = comparison?.parts[rightHalf && comparison.parts.length === 2 ? 1 : 0];
+            openBar(chartData[index]?.key, event, series);
+          }} />} content={({ active, payload }) => {
             const point = payload?.[0]?.payload as Point | ComparisonPoint | undefined;
             return active && point ? <div className="chart-tooltip">
               <span>{point.key}{daily ? '' : '월'}</span>

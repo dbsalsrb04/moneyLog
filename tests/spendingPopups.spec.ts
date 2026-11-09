@@ -79,6 +79,29 @@ test('모바일 일별 막대는 필터에 맞는 거래 상세만 바로 연다
   await expect(detail).toHaveCount(0);
 });
 
+test('월별·일별 음영 영역을 막대 밖에서 클릭해도 해당 기간의 내역을 연다', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await upload(page);
+  for (const [panel, period] of [['#panel-monthly', '2026-12'], ['#panel-daily', '2026-11-07']] as const) {
+    if (panel === '#panel-daily') {
+      await page.getByRole('tab', { name: '일별', exact: true }).click();
+      await monthButton(page, '2026-11').click();
+    }
+    const chart = page.locator(panel);
+    const bar = chart.locator('.recharts-bar-rectangle path').last();
+    await bar.hover();
+    const highlight = chart.locator('.recharts-tooltip-cursor');
+    await expect(highlight).toBeVisible();
+    const bounds = (await highlight.boundingBox())!;
+    expect(bounds.y + 8).toBeLessThan((await bar.boundingBox())!.y);
+    await highlight.click({ position: { x: bounds.width / 2, y: 8 } });
+    const popup = page.getByRole('dialog', { name: period, exact: true });
+    await expect(popup).toContainText(panel === '#panel-monthly' ? '14,000원' : '버스');
+    await page.keyboard.press('Escape');
+    await expect(popup).toHaveCount(0);
+  }
+});
+
 test('월별 유형 비교에서 누른 막대의 유형으로 날짜별 합계와 상세를 표시한다', async ({ page }) => {
   await upload(page);
   await page.getByRole('button', { name: '월세 제외하기', exact: true }).click();
@@ -93,4 +116,14 @@ test('월별 유형 비교에서 누른 막대의 유형으로 날짜별 합계�
   await month.getByRole('button', { name: '2026-11-03', exact: true }).click();
   const detail = page.getByRole('dialog', { name: '2026-11-03', exact: true });
   await expect(detail.getByRole('listitem')).toHaveText('45,000원수입 정산—');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('Escape');
+  await expect(month).toHaveCount(0);
+  const bar = income.locator('.recharts-bar-rectangle path').first();
+  await bar.hover();
+  const highlight = page.locator('#panel-monthly .recharts-tooltip-cursor');
+  const bounds = (await highlight.boundingBox())!;
+  expect(bounds.x + bounds.width - 5).toBeGreaterThan((await bar.boundingBox())!.x + (await bar.boundingBox())!.width);
+  await highlight.click({ position: { x: bounds.width - 5, y: bounds.height / 2 } });
+  await expect(month.locator('tbody tr')).toHaveText(['2026-11-0345,000원']);
 });
